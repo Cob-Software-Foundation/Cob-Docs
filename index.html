@@ -89,6 +89,17 @@
     color: var(--text-dim);
   }
   .flag { font-family: var(--mono); color: var(--corn); }
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--bg);
+    background: var(--corn);
+    border-radius: 3px;
+    padding: 0.05rem 0.4rem;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
 </style>
 </head>
 <body>
@@ -96,7 +107,7 @@
 <div class="layout">
 <nav>
   <h1>Cob</h1>
-  <div class="codename">Project Obsidian Falcon</div>
+  <div class="codename">v0.0.5 &middot; Project Obsidian Falcon</div>
 
   <div class="section-label">Guide</div>
   <ul>
@@ -114,6 +125,13 @@
     <li><a href="#makecache">_MakeCache</a></li>
   </ul>
 
+  <div class="section-label">Extensions <span class="badge">0.0.5</span></div>
+  <ul>
+    <li><a href="#sql">SQLite (sql_*)</a></li>
+    <li><a href="#cobwindow">_cobwindow (window_*)</a></li>
+    <li><a href="#tcl-tk">Tcl/Tk (tcl_eval / tk_eval)</a></li>
+  </ul>
+
   <div class="section-label">Tools</div>
   <ul>
     <li><a href="#cob-interp">cob_interp</a></li>
@@ -129,9 +147,10 @@
   <p>
     Cob is a corn-themed hybrid language with Python-style,
     indentation-and-colon block structure. A program is a sequence of
-    statements; blocks (currently only <code>while</code>) are opened
-    with a trailing <code>:</code> and their body is whatever's
-    indented further than the header line.
+    statements; blocks (currently only <code>while</code> &mdash;
+    there is no <code>if</code>/<code>else</code>) are opened with a
+    trailing <code>:</code> and their body is whatever's indented
+    further than the header line.
   </p>
   <pre><span class="kw">set</span> x = 5
 <span class="kw">while</span> x &gt; 0:
@@ -145,8 +164,8 @@ pop(<span class="str">"liftoff"</span>)</pre>
   <h2>The toolchain</h2>
   <table>
     <tr><th>Tool</th><th>What it does</th></tr>
-    <tr><td><code>cob_interp</code></td><td>Interprets a .cob file directly, with a fast-boot .strawberry bytecode cache.</td></tr>
-    <tr><td><code>popcorn_comp</code></td><td>Compiles a .strawberry file to a real, standalone native executable.</td></tr>
+    <tr><td><code>cob_interp</code></td><td>Interprets a .cob file directly, with a fast-boot .strawberry bytecode cache. Ships in several builds &mdash; see <a href="#cob-interp">below</a> &mdash; that add SQLite, a native window, and/or Tcl/Tk on top of the same core language.</td></tr>
+    <tr><td><code>popcorn_comp</code></td><td>Compiles a .strawberry file to a real, standalone native executable. Only the core language on this page (not the SQLite/<code>_cobwindow</code>/Tcl/Tk extensions below) is currently supported.</td></tr>
     <tr><td><code>farmer</code></td><td>The package manager &mdash; installs .cob libraries from a static registry.</td></tr>
   </table>
 </section>
@@ -162,20 +181,24 @@ pop(<span class="str">"line one\nline two"</span>)</pre>
 
   <h3 id="set">set &lt;name&gt; = &lt;expr&gt;</h3>
   <p>
-    Assigns an integer to a variable, creating it if it doesn't exist
-    yet. Expressions support <code>+ - * /</code> with standard
-    precedence (<code>*</code>/<code>/</code> bind tighter than
-    <code>+</code>/<code>-</code>), variable references, and integer
-    literals.
+    Assigns a value to a variable, creating it if it doesn't exist
+    yet. A value is either an integer or a string. Expressions support
+    <code>+ - * /</code> with standard precedence
+    (<code>*</code>/<code>/</code> bind tighter than
+    <code>+</code>/<code>-</code>) on two integers; <code>+</code> also
+    concatenates when either side is a string, converting the other
+    side to text first.
   </p>
-  <pre><span class="kw">set</span> a = 2 + 3 * 4     <span class="com"># 14</span>
-<span class="kw">set</span> b = a - 1</pre>
+  <pre><span class="kw">set</span> a = 2 + 3 * 4              <span class="com"># 14</span>
+<span class="kw">set</span> b = a - 1
+<span class="kw">set</span> greeting = <span class="str">"count: "</span> + a  <span class="com"># "count: 14"</span></pre>
 
   <h3 id="while">while &lt;condition&gt;:</h3>
   <p>
     Loops while the condition is true. A bare expression is a
     truthiness test (nonzero); a comparison uses
-    <code>== != &lt; &gt; &lt;= &gt;=</code>. Loops nest to any depth
+    <code>== != &lt; &gt; &lt;= &gt;=</code>, and works the same way on
+    two strings as it does on two integers. Loops nest to any depth
     and are capped at 10,000,000 iterations as a safety net against
     runaway/infinite programs.
   </p>
@@ -226,6 +249,106 @@ trash(p)</pre>
 pop(<span class="str">"always reparsed fresh"</span>)</pre>
 </section>
 
+<section id="sql">
+  <h2>Extensions <span class="badge">0.0.5</span></h2>
+
+  <h3 id="sql-h">SQLite &mdash; sql_open / sql_exec / sql_query / sql_close</h3>
+  <p>
+    A thin binding onto SQLite's C API, one open database handle per
+    call to <code>sql_open()</code>.
+  </p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>sql_open(&lt;path&gt;)</code></td><td>handle (int), <code>0</code> on failure</td></tr>
+    <tr><td><code>sql_exec(&lt;handle&gt;, &lt;sql&gt;)</code></td><td>rc (int), <code>0</code> on success</td></tr>
+    <tr><td><code>sql_query(&lt;handle&gt;, &lt;sql&gt;)</code></td><td>string &mdash; first column of the first row, <code>""</code> if none</td></tr>
+    <tr><td><code>sql_close(&lt;handle&gt;)</code></td><td><code>0</code></td></tr>
+  </table>
+  <pre><span class="kw">set</span> h = sql_open(<span class="str">"scores.db"</span>)
+<span class="kw">set</span> rc = sql_exec(h, <span class="str">"CREATE TABLE IF NOT EXISTS t (name TEXT)"</span>)
+<span class="kw">set</span> rc = sql_exec(h, <span class="str">"INSERT INTO t VALUES ('cob')"</span>)
+<span class="kw">set</span> name = sql_query(h, <span class="str">"SELECT name FROM t LIMIT 1"</span>)
+pop(<span class="str">"got: "</span> + name)
+<span class="kw">set</span> rc = sql_close(h)</pre>
+  <div class="note">
+    Builds via SQLite's single-file amalgamation &mdash; no
+    <code>configure</code> step, no separate library install.
+  </div>
+</section>
+
+<section id="cobwindow">
+  <h3 id="cobwindow-h">_cobwindow &mdash; a native window, backed by raylib + raygui</h3>
+  <p>
+    A small, real (not simulated) desktop window, opened with
+    <code>shuck cobwindow</code> first.
+  </p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>window_open(&lt;title&gt;)</code></td><td>handle (int), <code>0</code> on failure</td></tr>
+    <tr><td><code>window_label(&lt;h&gt;, &lt;text&gt;)</code></td><td><code>0</code> &mdash; sets/replaces the window's text</td></tr>
+    <tr><td><code>window_wait(&lt;h&gt;, &lt;seconds&gt;)</code></td><td><code>0</code> &mdash; keeps the window responsive for ~&lt;seconds&gt;</td></tr>
+    <tr><td><code>window_close(&lt;h&gt;)</code></td><td><code>0</code></td></tr>
+    <tr><td><code>window_button(&lt;h&gt;, &lt;label&gt;)</code></td><td><code>1</code> if clicked since the last read of that label, else <code>0</code></td></tr>
+    <tr><td><code>window_slider(&lt;h&gt;, &lt;label&gt;, &lt;max&gt;)</code></td><td>current value, <code>0</code>..&lt;max&gt;, as an int</td></tr>
+    <tr><td><code>window_textbox(&lt;h&gt;, &lt;label&gt;)</code></td><td>current string contents of the box</td></tr>
+  </table>
+  <pre><span class="kw">shuck</span> cobwindow
+<span class="kw">set</span> h = window_open(<span class="str">"Cob Window Demo"</span>)
+<span class="kw">set</span> rc = window_label(h, <span class="str">"Hello from Cob!"</span>)
+<span class="kw">set</span> clicked = window_button(h, <span class="str">"OK"</span>)
+<span class="kw">set</span> volume = window_slider(h, <span class="str">"Volume"</span>, 100)
+<span class="kw">set</span> name = window_textbox(h, <span class="str">"Name"</span>)
+<span class="kw">set</span> rc = window_wait(h, 5)
+<span class="kw">set</span> rc = window_close(h)</pre>
+  <p>
+    Each widget is identified by its own label text, not a separate
+    handle &mdash; the first <code>window_button()</code>/
+    <code>window_slider()</code>/<code>window_textbox()</code> call
+    with a given label creates that widget, auto-stacked on screen
+    below the <code>window_label()</code> text; every later call with
+    the same label (and kind &mdash; a button and a slider can share a
+    label without colliding) reads or updates that same widget.
+    Declaring and reading happen in the same call, since Cob has no
+    separate "declare once, poll every frame" mechanism:
+  </p>
+  <ul>
+    <li><code>window_button()</code>'s click flag resets on read, so a click is reported exactly once.</li>
+    <li><code>window_slider()</code> re-ranges (and clamps the current value into the new range) if called again with a different <code>&lt;max&gt;</code>.</li>
+    <li><code>window_textbox()</code> is always in an editable state &mdash; Cob has no click-to-focus concept to hook a toggle to.</li>
+  </ul>
+  <div class="note">
+    Only one native window per process &mdash; calling
+    <code>window_open()</code> again before closing the first warns
+    and returns <code>0</code>. The window's own close button
+    (<code>[X]</code>) is intentionally ignored; Cob has no callback
+    mechanism to notify a running script that it was clicked, so the
+    window stays open until <code>window_wait()</code>'s timer runs
+    out or <code>window_close()</code> is called explicitly &mdash;
+    the same "explicit close only" model <code>harvest()</code>/
+    <code>trash()</code> use for memory. Running more than one
+    <code>window_textbox()</code> at a time hasn't been verified for
+    keyboard-focus behavior; treat that as unverified rather than
+    unsupported.
+  </div>
+</section>
+
+<section id="tcl-tk">
+  <h3 id="tcl-tk-h">Tcl/Tk &mdash; tcl_eval / tk_eval</h3>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>tcl_eval(&lt;script&gt;)</code></td><td>string &mdash; Tcl's own string result</td></tr>
+    <tr><td><code>tk_eval(&lt;script&gt;)</code></td><td>string &mdash; same interpreter as <code>tcl_eval</code>, with Tk also loaded</td></tr>
+  </table>
+  <pre>pop(<span class="str">"answer="</span> + tcl_eval(<span class="str">"expr {6*7}"</span>))  <span class="com"># answer=42</span></pre>
+  <div class="note">
+    Only in the separate <code>cob_interp_db</code> build &mdash; see
+    <a href="#cob-interp">below</a>. Needs a real X11 <code>$DISPLAY</code>
+    at runtime for <code>tk_eval()</code>; without one it evaluates to
+    a normal Tcl error string, the same as real Tk would report, not a
+    crash.
+  </div>
+</section>
+
 <section id="cob-interp">
   <h2>Tool reference</h2>
 
@@ -235,6 +358,20 @@ pop(<span class="str">"always reparsed fresh"</span>)</pre>
     <tr><td><span class="flag">--no-cache</span></td><td>Skip reading/writing the .strawberry cache for this run.</td></tr>
     <tr><td><span class="flag">--no-gc</span></td><td>Unlock <code>harvest()</code>/<code>trash()</code>.</td></tr>
   </table>
+  <p>Four build variants, all built from the same <code>src/cob_interp.c</code>:</p>
+  <table>
+    <tr><th>Build</th><th>Adds on top of the core language above</th></tr>
+    <tr><td><code>cob_interp</code></td><td>Nothing &mdash; zero vendor dependency, builds in under a second.</td></tr>
+    <tr><td><code>cob_interp_window</code></td><td><a href="#cobwindow">_cobwindow</a> (raylib + raygui).</td></tr>
+    <tr><td><code>cob_interp_full</code></td><td><a href="#sql">SQLite</a> + <a href="#cobwindow">_cobwindow</a> &mdash; <b>what a plain <code>make</code> builds by default.</b></td></tr>
+    <tr><td><code>cob_interp_db</code></td><td><a href="#sql">SQLite</a> + <a href="#tcl-tk">Tcl/Tk</a> (no <code>_cobwindow</code>).</td></tr>
+  </table>
+  <div class="note">
+    Calling a <code>sql_*</code>/<code>window_*</code>/<code>tcl_eval</code>/<code>tk_eval</code>
+    keyword in a build that doesn't include it prints a one-line
+    warning and evaluates to a harmless default (<code>0</code> or
+    <code>""</code>) rather than failing to build or crashing.
+  </div>
 </section>
 
 <section id="popcorn-comp">
@@ -262,6 +399,15 @@ pop(<span class="str">"always reparsed fresh"</span>)</pre>
   <div class="note">
     Linux targets default to <b>musl</b> libc rather than glibc,
     producing fully static binaries with no runtime libc dependency.
+  </div>
+  <div class="note">
+    The <a href="#sql">SQLite</a>/<a href="#cobwindow">_cobwindow</a>/<a href="#tcl-tk">Tcl/Tk</a>
+    extensions above are <code>cob_interp</code>-only for now &mdash;
+    <code>popcorn_comp</code>'s codegen doesn't implement any of them
+    yet. A <code>.strawberry</code> cache that uses one of those
+    keywords still loads (the format is shared and stays
+    backward-readable), it just fails cleanly at the specific
+    unsupported call instead of at load time.
   </div>
 </section>
 

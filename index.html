@@ -107,7 +107,7 @@
 <div class="layout">
 <nav>
   <h1>Cob</h1>
-  <div class="codename">v0.0.5 &middot; Project Obsidian Falcon</div>
+  <div class="codename">v0.0.7 &middot; Project Obsidian Falcon</div>
 
   <div class="section-label">Guide</div>
   <ul>
@@ -120,6 +120,7 @@
     <li><a href="#pop">pop</a></li>
     <li><a href="#set">set</a></li>
     <li><a href="#while">while</a></li>
+    <li><a href="#if">if / elif / else</a></li>
     <li><a href="#shuck">shuck</a></li>
     <li><a href="#harvest-trash">harvest / trash</a></li>
     <li><a href="#makecache">_MakeCache</a></li>
@@ -147,8 +148,8 @@
   <p>
     Cob is a corn-themed hybrid language with Python-style,
     indentation-and-colon block structure. A program is a sequence of
-    statements; blocks (currently only <code>while</code> &mdash;
-    there is no <code>if</code>/<code>else</code>) are opened with a
+    statements; blocks (<code>while</code>, <code>if</code>,
+    <code>elif</code> and <code>else</code>) are opened with a
     trailing <code>:</code> and their body is whatever's indented
     further than the header line.
   </p>
@@ -156,7 +157,8 @@
 <span class="kw">while</span> x &gt; 0:
     pop(<span class="str">"counting down"</span>)
     <span class="kw">set</span> x = x - 1
-pop(<span class="str">"liftoff"</span>)</pre>
+<span class="kw">if</span> x == 0:
+    pop(<span class="str">"liftoff"</span>)</pre>
   <p class="dim">Indentation is spaces only &mdash; tabs are a hard error.</p>
 </section>
 
@@ -205,6 +207,53 @@ pop(<span class="str">"line one\nline two"</span>)</pre>
   <pre><span class="kw">while</span> a != 0:
     pop(<span class="str">"tick"</span>)
     <span class="kw">set</span> a = a - 1</pre>
+
+  <h3 id="if">if / elif / else <span class="badge">0.0.7</span></h3>
+  <p>
+    <code>if &lt;condition&gt;:</code> runs its indented block when the
+    condition is true. The condition is exactly what a
+    <code>while</code> takes: a comparison
+    (<code>== != &lt; &gt; &lt;= &gt;=</code>) on two integers or two
+    strings, or a bare expression as a truthiness test (non-zero for an
+    integer, non-empty for a string).
+  </p>
+  <p>
+    An <code>if</code> may be followed by any number of
+    <code>elif &lt;condition&gt;:</code> blocks and then at most one
+    <code>else:</code> block. They must sit at the <b>same
+    indentation</b> as the <code>if</code> they belong to, and are
+    checked top to bottom &mdash; only the first block whose condition
+    is true runs, or the <code>else</code> block if none is.
+  </p>
+  <pre><span class="kw">set</span> score = 85
+<span class="kw">if</span> score &gt;= 90:
+    pop(<span class="str">"grade: A"</span>)
+<span class="kw">elif</span> score &gt;= 80:
+    pop(<span class="str">"grade: B"</span>)
+<span class="kw">else</span>:
+    pop(<span class="str">"keep practicing"</span>)    <span class="com"># grade: B is printed instead</span></pre>
+  <p>
+    Blocks nest to any depth, inside each other and inside loops:
+  </p>
+  <pre><span class="kw">set</span> i = 1
+<span class="kw">while</span> i &lt;= 3:
+    <span class="kw">if</span> i == 2:
+        pop(<span class="str">"two"</span>)
+    <span class="kw">else</span>:
+        pop(i)
+    <span class="kw">set</span> i = i + 1</pre>
+  <div class="note">
+    There is no separate <code>and</code>/<code>or</code>/<code>not</code>
+    yet &mdash; a condition is a single comparison or truthiness test.
+    To combine two tests, nest one <code>if</code> inside the other. An
+    <code>else</code> or <code>elif</code> with no matching
+    <code>if</code> directly above it at the same indentation is a
+    syntax error, and so is an <code>if</code> line with no trailing
+    <code>:</code>. Both <code>cob_interp</code> and
+    <code>popcorn_comp</code> support it and print identical output.
+    <code>if</code>, <code>elif</code> and <code>else</code> are
+    reserved words.
+  </div>
 
   <h3 id="shuck">shuck &lt;library_name&gt;</h3>
   <p>

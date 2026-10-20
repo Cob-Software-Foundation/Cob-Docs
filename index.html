@@ -107,7 +107,7 @@
 <div class="layout">
 <nav>
   <h1>Cob</h1>
-  <div class="codename">v0.0.7 &middot; Project Obsidian Falcon</div>
+  <div class="codename">v0.0.8 &middot; Project Obsidian Falcon</div>
 
   <div class="section-label">Guide</div>
   <ul>
@@ -121,6 +121,7 @@
     <li><a href="#set">set</a></li>
     <li><a href="#while">while</a></li>
     <li><a href="#if">if / elif / else</a></li>
+    <li><a href="#input">input / input_int</a></li>
     <li><a href="#shuck">shuck</a></li>
     <li><a href="#harvest-trash">harvest / trash</a></li>
     <li><a href="#makecache">_MakeCache</a></li>
@@ -253,6 +254,64 @@ pop(<span class="str">"line one\nline two"</span>)</pre>
     <code>popcorn_comp</code> support it and print identical output.
     <code>if</code>, <code>elif</code> and <code>else</code> are
     reserved words.
+  </div>
+
+  <h3 id="input">input(&lt;prompt&gt;) / input_int(&lt;prompt&gt;) <span class="badge">0.0.8</span></h3>
+  <p>
+    Ask the person running the program a question. Both are
+    expressions: they print the prompt, wait for one line of standard
+    input, and evaluate to what was typed.
+  </p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>input(&lt;prompt&gt;)</code></td><td>string &mdash; the line typed, without its line ending; <code>""</code> at end of input</td></tr>
+    <tr><td><code>input_int(&lt;prompt&gt;)</code></td><td>int &mdash; the line parsed as a whole number; <code>0</code> if it isn't one, or at end of input</td></tr>
+  </table>
+  <pre><span class="kw">set</span> name = input(<span class="str">"What is your name? "</span>)
+pop(<span class="str">"Hello, "</span> + name + <span class="str">"!"</span>)
+<span class="kw">set</span> age = input_int(<span class="str">"How old are you? "</span>)
+<span class="kw">set</span> next_year = age + 1
+pop(<span class="str">"Next year you will be "</span> + next_year)</pre>
+  <p>
+    Run it with the answers piped in (nothing echoes them, so the
+    prompts run into the output), or just run it and type:
+  </p>
+  <pre>$ printf 'Ada\n41\n' | cob_interp hello.cob
+What is your name? Hello, Ada!
+How old are you? Next year you will be 42</pre>
+  <ul>
+    <li><b>The prompt</b> can be any expression. It is printed without a trailing newline and flushed before Cob reads, so it appears on the same line as the typing; a number prompt is printed as text. The prompt is optional &mdash; <code>input()</code> reads silently.</li>
+    <li><b>One line per call.</b> The line ending (<code>\n</code> or <code>\r\n</code>) is removed, and lines of any length work.</li>
+    <li><b>End of input</b> &mdash; a piped file that has run out, or Ctrl-D (Ctrl-Z on Windows) &mdash; makes <code>input()</code> return <code>""</code> and <code>input_int()</code> return <code>0</code>, with no error and no warning.</li>
+    <li><b><code>input_int</code> parsing.</b> Spaces or tabs around a base-10 number are fine, and so is a leading <code>-</code> or <code>+</code>: <code>"  -12  "</code> is <code>-12</code>. Anything else &mdash; <code>3.5</code>, <code>0x10</code>, <code>1 2</code>, an empty line &mdash; prints a warning on stderr and gives <code>0</code>. A number too big for an integer is clamped to the largest one your platform holds.</li>
+  </ul>
+  <pre><span class="kw">set</span> n = input_int(<span class="str">"How many? "</span>)    <span class="com"># the person types: abc</span>
+<span class="com"># [cob_interp] warning: input_int() got non-numeric input "abc"; treated as 0</span></pre>
+  <p>A loop can keep asking until it gets what it wants:</p>
+  <pre><span class="kw">set</span> secret = 7
+<span class="kw">set</span> guess = 0
+<span class="kw">while</span> guess != secret:
+    <span class="kw">set</span> guess = input_int(<span class="str">"Guess my number: "</span>)
+pop(<span class="str">"You got it!"</span>)</pre>
+  <div class="note">
+    <b>Watch the end of input.</b> The loop above can't tell "the
+    right answer" from "no more answers": once the input runs out,
+    every read returns <code>0</code>, so it asks again 10,000,000
+    times (seconds of output, mostly the prompt) until the loop cap
+    stops it with a warning &mdash; and then the program carries on
+    past the loop as if nothing were wrong. When the input might be a
+    file or a pipe, count the tries instead of waiting forever.
+  </div>
+  <div class="note">
+    <code>input</code> and <code>input_int</code> are reserved words
+    when followed by <code>(</code>, so an <code>extern</code> can't be
+    named either one; a variable called <code>input</code> (no
+    parentheses) still works. <code>popcorn_comp</code> compiles both,
+    and a compiled program behaves identically &mdash; its warning is
+    tagged <code>[cob]</code> instead of <code>[cob_interp]</code>, like
+    every compiled warning. In the in-browser playground there is no
+    keyboard to read, so each call asks with a browser dialog instead;
+    Cancel means end of input.
   </div>
 
   <h3 id="shuck">shuck &lt;library_name&gt;</h3>
@@ -407,6 +466,11 @@ pop(<span class="str">"got: "</span> + name)
     <tr><td><span class="flag">--no-cache</span></td><td>Skip reading/writing the .strawberry cache for this run.</td></tr>
     <tr><td><span class="flag">--no-gc</span></td><td>Unlock <code>harvest()</code>/<code>trash()</code>.</td></tr>
   </table>
+  <p>
+    <a href="#input"><code>input()</code></a> and <code>input_int()</code>
+    read standard input, so a program can be fed from a file or a pipe:
+    <code>cob_interp quiz.cob &lt; answers.txt</code>.
+  </p>
   <p>Four build variants, all built from the same <code>src/cob_interp.c</code>:</p>
   <table>
     <tr><th>Build</th><th>Adds on top of the core language above</th></tr>
@@ -434,7 +498,11 @@ pop(<span class="str">"got: "</span> + name)
     essentially every target in one install, which is what makes
     <code>CobOS</code>/<code>CobArch</code> cross-compiling a plain
     <code>-target</code> flag instead of needing a separately
-    installed cross-toolchain per platform.
+    installed cross-toolchain per platform. Release downloads bundle
+    Zig in a <code>zig/</code> folder next to <code>popcorn_comp</code>
+    and find it automatically, so nothing else needs installing; when
+    building from source, put Zig on your PATH or pass
+    <code>--cc</code>.
   </p>
   <p>Compiler is resolved in this order:</p>
   <table>
@@ -476,7 +544,7 @@ pop(<span class="str">"got: "</span> + name)
   </table>
   <p>
     The registry itself lives at
-    <a href="https://github.com/pixel-pulse-labs/cpi">pixel-pulse-labs/cpi</a>,
+    <a href="https://github.com/Cob-Software-Foundation/cpi">Cob-Software-Foundation/cpi</a>,
     served for free via GitHub Pages &mdash; no server, just static
     JSON files.
   </p>

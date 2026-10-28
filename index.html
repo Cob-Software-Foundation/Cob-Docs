@@ -107,7 +107,7 @@
 <div class="layout">
 <nav>
   <h1>Cob</h1>
-  <div class="codename">v0.0.8 &middot; Project Obsidian Falcon</div>
+  <div class="codename">v0.0.9 &middot; Project Obsidian Falcon</div>
 
   <div class="section-label">Guide</div>
   <ul>
@@ -121,17 +121,28 @@
     <li><a href="#set">set</a></li>
     <li><a href="#while">while</a></li>
     <li><a href="#if">if / elif / else</a></li>
-    <li><a href="#input">input / input_int</a></li>
+    <li><a href="#recipe">recipe / serve</a></li>
     <li><a href="#shuck">shuck</a></li>
+    <li><a href="#extern">extern</a></li>
     <li><a href="#harvest-trash">harvest / trash</a></li>
     <li><a href="#makecache">_MakeCache</a></li>
+    <li><a href="#repl">The REPL</a></li>
   </ul>
 
-  <div class="section-label">Extensions <span class="badge">0.0.5</span></div>
+  <div class="section-label">Standard library <span class="badge">0.0.9</span></div>
   <ul>
-    <li><a href="#sql">SQLite (sql_*)</a></li>
-    <li><a href="#cobwindow">_cobwindow (window_*)</a></li>
-    <li><a href="#tcl-tk">Tcl/Tk (tcl_eval / tk_eval)</a></li>
+    <li><a href="#stdlib">How it works</a></li>
+    <li><a href="#lib-porch">porch (input)</a></li>
+    <li><a href="#lib-cornmath">cornmath</a></li>
+    <li><a href="#lib-kernels">kernels (text)</a></li>
+    <li><a href="#lib-almanac">almanac (time)</a></li>
+    <li><a href="#lib-granary">granary (files)</a></li>
+    <li><a href="#lib-pantry">pantry (SQLite)</a></li>
+    <li><a href="#lib-barn">barn (windows)</a></li>
+    <li><a href="#lib-tassel">tassel (Tcl/Tk)</a></li>
+    <li><a href="#lib-silo">silo (everyday five)</a></li>
+    <li><a href="#upgrading">Upgrading from 0.0.8</a></li>
+    <li><a href="#own-module">Write your own module</a></li>
   </ul>
 
   <div class="section-label">Tools</div>
@@ -139,6 +150,7 @@
     <li><a href="#cob-interp">cob_interp</a></li>
     <li><a href="#popcorn-comp">popcorn_comp</a></li>
     <li><a href="#farmer">farmer</a></li>
+    <li><a href="#docker">Docker</a></li>
   </ul>
 </nav>
 
@@ -150,26 +162,36 @@
     Cob is a corn-themed hybrid language with Python-style,
     indentation-and-colon block structure. A program is a sequence of
     statements; blocks (<code>while</code>, <code>if</code>,
-    <code>elif</code> and <code>else</code>) are opened with a
+    <code>elif</code>, <code>else</code> and <code>recipe</code>) are opened with a
     trailing <code>:</code> and their body is whatever's indented
     further than the header line.
   </p>
-  <pre><span class="kw">set</span> x = 5
-<span class="kw">while</span> x &gt; 0:
-    pop(<span class="str">"counting down"</span>)
-    <span class="kw">set</span> x = x - 1
-<span class="kw">if</span> x == 0:
-    pop(<span class="str">"liftoff"</span>)</pre>
-  <p class="dim">Indentation is spaces only &mdash; tabs are a hard error.</p>
+  <pre><span class="kw">recipe</span> countdown(n):
+    <span class="kw">while</span> n &gt; 0:
+        pop(<span class="str">"counting down: "</span> + n)
+        <span class="kw">set</span> n = n - 1
+    <span class="kw">serve</span> <span class="str">"liftoff"</span>
+
+pop(countdown(3))</pre>
+  <p>
+    The language itself is small: variables, arithmetic, <code>pop</code>,
+    <code>while</code>, <code>if</code>, <code>recipe</code> and
+    <code>shuck</code>. Everything else &mdash; reading what the person
+    types, text, numbers, time, files, SQLite, windows, Tcl/Tk &mdash; is
+    the <a href="#stdlib">standard library</a>: real shared libraries
+    brought in with <code>shuck</code>, every name corn themed.
+  </p>
+  <p class="dim">Indentation is spaces only &mdash; tabs are a hard error. Comments are whole lines starting with <code>#</code>; there are no trailing comments, so the notes written to the right of some examples on this page are explanation, not code you can paste.</p>
 </section>
 
 <section id="toolchain">
   <h2>The toolchain</h2>
   <table>
     <tr><th>Tool</th><th>What it does</th></tr>
-    <tr><td><code>cob_interp</code></td><td>Interprets a .cob file directly, with a fast-boot .strawberry bytecode cache. Ships in several builds &mdash; see <a href="#cob-interp">below</a> &mdash; that add SQLite, a native window, and/or Tcl/Tk on top of the same core language.</td></tr>
-    <tr><td><code>popcorn_comp</code></td><td>Compiles a .strawberry file to a real, standalone native executable. Only the core language on this page (not the SQLite/<code>_cobwindow</code>/Tcl/Tk extensions below) is currently supported.</td></tr>
+    <tr><td><code>cob_interp</code></td><td>Interprets a .cob file directly, with a fast-boot .strawberry bytecode cache &mdash; or, with no file, starts an interactive <a href="#repl">REPL</a>. One interpreter: the core language only, with no vendor libraries, so it builds in about a second.</td></tr>
+    <tr><td><code>popcorn_comp</code></td><td>Compiles a .strawberry file to a real, standalone native executable. Handles the whole language, <a href="#recipe">recipes</a> and every <a href="#stdlib">standard library</a> module included.</td></tr>
     <tr><td><code>farmer</code></td><td>The package manager &mdash; installs .cob libraries from a static registry.</td></tr>
+    <tr><td><code>lib/</code></td><td>The <a href="#stdlib">standard library</a>: one shared library per module, with its <code>.cob</code> wrapper. Keep it next to the tools.</td></tr>
   </table>
 </section>
 
@@ -256,76 +278,75 @@ pop(<span class="str">"line one\nline two"</span>)</pre>
     reserved words.
   </div>
 
-  <h3 id="input">input(&lt;prompt&gt;) / input_int(&lt;prompt&gt;) <span class="badge">0.0.8</span></h3>
+  <h3 id="recipe">recipe &lt;name&gt;(&lt;params&gt;): / serve [&lt;expr&gt;] <span class="badge">0.0.9</span></h3>
   <p>
-    Ask the person running the program a question. Both are
-    expressions: they print the prompt, wait for one line of standard
-    input, and evaluate to what was typed.
+    A <code>recipe</code> is a function &mdash; it works like Python's
+    <code>def</code> &mdash; and <code>serve</code> hands a value back to
+    whoever called it, like <code>return</code>. A call is
+    <code>name(a, b)</code>, and can be used anywhere an expression can, or
+    on a line of its own.
   </p>
-  <table>
-    <tr><th>Call</th><th>Returns</th></tr>
-    <tr><td><code>input(&lt;prompt&gt;)</code></td><td>string &mdash; the line typed, without its line ending; <code>""</code> at end of input</td></tr>
-    <tr><td><code>input_int(&lt;prompt&gt;)</code></td><td>int &mdash; the line parsed as a whole number; <code>0</code> if it isn't one, or at end of input</td></tr>
-  </table>
-  <pre><span class="kw">set</span> name = input(<span class="str">"What is your name? "</span>)
-pop(<span class="str">"Hello, "</span> + name + <span class="str">"!"</span>)
-<span class="kw">set</span> age = input_int(<span class="str">"How old are you? "</span>)
-<span class="kw">set</span> next_year = age + 1
-pop(<span class="str">"Next year you will be "</span> + next_year)</pre>
-  <p>
-    Run it with the answers piped in (nothing echoes them, so the
-    prompts run into the output), or just run it and type:
-  </p>
-  <pre>$ printf 'Ada\n41\n' | cob_interp hello.cob
-What is your name? Hello, Ada!
-How old are you? Next year you will be 42</pre>
+  <pre><span class="com"># serve hands a value back</span>
+<span class="kw">recipe</span> add(a, b):
+    <span class="kw">serve</span> a + b
+
+<span class="com"># a recipe that ends without serve gives 0</span>
+<span class="kw">recipe</span> greet(name):
+    pop(<span class="str">"Hello, "</span> + name + <span class="str">"!"</span>)
+
+<span class="kw">recipe</span> fact(n):
+    <span class="kw">if</span> n &lt;= 1:
+        <span class="kw">serve</span> 1
+    <span class="kw">serve</span> n * fact(n - 1)
+
+pop(add(2, 3))
+greet(<span class="str">"Ada"</span>)
+pop(fact(10))</pre>
   <ul>
-    <li><b>The prompt</b> can be any expression. It is printed without a trailing newline and flushed before Cob reads, so it appears on the same line as the typing; a number prompt is printed as text. The prompt is optional &mdash; <code>input()</code> reads silently.</li>
-    <li><b>One line per call.</b> The line ending (<code>\n</code> or <code>\r\n</code>) is removed, and lines of any length work.</li>
-    <li><b>End of input</b> &mdash; a piped file that has run out, or Ctrl-D (Ctrl-Z on Windows) &mdash; makes <code>input()</code> return <code>""</code> and <code>input_int()</code> return <code>0</code>, with no error and no warning.</li>
-    <li><b><code>input_int</code> parsing.</b> Spaces or tabs around a base-10 number are fine, and so is a leading <code>-</code> or <code>+</code>: <code>"  -12  "</code> is <code>-12</code>. Anything else &mdash; <code>3.5</code>, <code>0x10</code>, <code>1 2</code>, an empty line &mdash; prints a warning on stderr and gives <code>0</code>. A number too big for an integer is clamped to the largest one your platform holds.</li>
+    <li><b>Scope.</b> A recipe's parameters, and every name it <code>set</code>s, are <b>local</b> to it, for its whole body, and start at 0. Any other name reads the global variable of that name. A recipe cannot assign a global &mdash; it hands results back with <code>serve</code>.</li>
+    <li><b>Top level, and hoisted.</b> A recipe is defined at the top level of a program, never inside a <code>while</code>, <code>if</code> or another recipe. All recipes exist before the program starts, so a call may appear above its recipe, and recipes may call each other.</li>
+    <li><b>Checked before anything runs.</b> A call to a name that is not a recipe or a library function, a wrong number of arguments, a duplicate recipe, or <code>serve</code> outside a recipe is an error with its line number, so a typo fails up front, not halfway through.</li>
+    <li><b>Order of evaluation.</b> Arguments, and the two sides of an operator, are evaluated left to right &mdash; in <code>popcorn_comp</code> as well.</li>
+    <li><b>Recursion</b> works, up to <b>500 calls deep</b>; past that you get a warning and the call gives 0, rather than a crash.</li>
+    <li><b>Names.</b> <code>recipe</code> and <code>serve</code> are reserved words. A recipe cannot share its name with an <a href="#extern"><code>extern</code></a>.</li>
   </ul>
-  <pre><span class="kw">set</span> n = input_int(<span class="str">"How many? "</span>)    <span class="com"># the person types: abc</span>
-<span class="com"># [cob_interp] warning: input_int() got non-numeric input "abc"; treated as 0</span></pre>
-  <p>A loop can keep asking until it gets what it wants:</p>
-  <pre><span class="kw">set</span> secret = 7
-<span class="kw">set</span> guess = 0
-<span class="kw">while</span> guess != secret:
-    <span class="kw">set</span> guess = input_int(<span class="str">"Guess my number: "</span>)
-pop(<span class="str">"You got it!"</span>)</pre>
-  <div class="note">
-    <b>Watch the end of input.</b> The loop above can't tell "the
-    right answer" from "no more answers": once the input runs out,
-    every read returns <code>0</code>, so it asks again 10,000,000
-    times (seconds of output, mostly the prompt) until the loop cap
-    stops it with a warning &mdash; and then the program carries on
-    past the loop as if nothing were wrong. When the input might be a
-    file or a pipe, count the tries instead of waiting forever.
-  </div>
-  <div class="note">
-    <code>input</code> and <code>input_int</code> are reserved words
-    when followed by <code>(</code>, so an <code>extern</code> can't be
-    named either one; a variable called <code>input</code> (no
-    parentheses) still works. <code>popcorn_comp</code> compiles both,
-    and a compiled program behaves identically &mdash; its warning is
-    tagged <code>[cob]</code> instead of <code>[cob_interp]</code>, like
-    every compiled warning. In the in-browser playground there is no
-    keyboard to read, so each call asks with a browser dialog instead;
-    Cancel means end of input.
-  </div>
+  <pre>[cob_interp] error at line 5: recipe 'add' takes 2 arguments but 1 was given</pre>
 
   <h3 id="shuck">shuck &lt;library_name&gt;</h3>
   <p>
-    Loads <code>&lt;library_name&gt;.cob</code> (checking the current
-    directory first, then
-    <code>cob_modules/&lt;library_name&gt;/&lt;library_name&gt;.cob</code>
-    &mdash; the layout <a href="#farmer"><code>farmer harvest</code></a>
-    installs into) and splices its statements in at that point, like a
-    textual include. Circular imports and excessive nesting depth are
-    rejected with a clear error.
+    Loads <code>&lt;library_name&gt;.cob</code> and splices its statements in at that point,
+    like a textual include. It looks, in order, in:
+  </p>
+  <ol>
+    <li>the current directory,</li>
+    <li><code>cob_modules/&lt;library_name&gt;/&lt;library_name&gt;.cob</code> &mdash; the layout <a href="#farmer"><code>farmer harvest</code></a> installs into,</li>
+    <li>the <a href="#stdlib">standard library</a> directory.</li>
+  </ol>
+  <p>
+    Circular imports and excessive nesting depth are rejected with a clear error. A file that
+    defines <a href="#recipe">recipes</a> can only be shucked at the top level of a program.
   </p>
   <pre><span class="kw">shuck</span> greeter
+<span class="kw">shuck</span> kernels
 pop(<span class="str">"back in the main program"</span>)</pre>
+  <div class="note">
+    Because the current directory is searched first, a file of yours named like a standard library
+    module (a <code>porch.cob</code> next to your program) is found <em>before</em> the real one.
+    Name your own files accordingly.
+  </div>
+
+  <h3 id="extern">extern &lt;name&gt;(&lt;params&gt;) from "&lt;library&gt;"</h3>
+  <p>
+    Binds a C function from a shared library, so it can be called like any other function. This is
+    what the whole <a href="#stdlib">standard library</a> is built on, and how you <a href="#own-module">write your own module</a>.
+    <code>&lt;library&gt;</code> is a path (<code>"./libmine.so"</code>) or a bare module name
+    (<code>"porch"</code>, found in the standard library directory). The parameter names are
+    documentation: Cob does not check how many arguments a call passes. If the library, or the
+    function in it, can't be found you get <em>one</em> warning for the library and the function
+    evaluates to <code>0</code>.
+  </p>
+  <pre><span class="kw">extern</span> double_it(n) <span class="kw">from</span> <span class="str">"./libdoubler.so"</span>
+pop(double_it(21))</pre>
 
   <h3 id="harvest-trash">harvest(&lt;bytes&gt;) / trash(&lt;variable&gt;)</h3>
   <p>
@@ -357,134 +378,318 @@ trash(p)</pre>
 pop(<span class="str">"always reparsed fresh"</span>)</pre>
 </section>
 
-<section id="sql">
-  <h2>Extensions <span class="badge">0.0.5</span></h2>
-
-  <h3 id="sql-h">SQLite &mdash; sql_open / sql_exec / sql_query / sql_close</h3>
+<section id="repl">
+  <h2>The REPL <span class="badge">0.0.9</span></h2>
   <p>
-    A thin binding onto SQLite's C API, one open database handle per
-    call to <code>sql_open()</code>.
+    Run <code>cob_interp</code> with no file to try Cob interactively (<code>cob_interp --repl</code>
+    does the same). Variables and recipes persist from one input to the next.
   </p>
-  <table>
-    <tr><th>Call</th><th>Returns</th></tr>
-    <tr><td><code>sql_open(&lt;path&gt;)</code></td><td>handle (int), <code>0</code> on failure</td></tr>
-    <tr><td><code>sql_exec(&lt;handle&gt;, &lt;sql&gt;)</code></td><td>rc (int), <code>0</code> on success</td></tr>
-    <tr><td><code>sql_query(&lt;handle&gt;, &lt;sql&gt;)</code></td><td>string &mdash; first column of the first row, <code>""</code> if none</td></tr>
-    <tr><td><code>sql_close(&lt;handle&gt;)</code></td><td><code>0</code></td></tr>
-  </table>
-  <pre><span class="kw">set</span> h = sql_open(<span class="str">"scores.db"</span>)
-<span class="kw">set</span> rc = sql_exec(h, <span class="str">"CREATE TABLE IF NOT EXISTS t (name TEXT)"</span>)
-<span class="kw">set</span> rc = sql_exec(h, <span class="str">"INSERT INTO t VALUES ('cob')"</span>)
-<span class="kw">set</span> name = sql_query(h, <span class="str">"SELECT name FROM t LIMIT 1"</span>)
-pop(<span class="str">"got: "</span> + name)
-<span class="kw">set</span> rc = sql_close(h)</pre>
-  <div class="note">
-    Builds via SQLite's single-file amalgamation &mdash; no
-    <code>configure</code> step, no separate library install.
-  </div>
+  <pre>$ cob_interp
+Cob 0.0.9 REPL -- :help for help, :quit or Ctrl-D to leave
+cob&gt; 1 + 2
+3
+cob&gt; <span class="kw">set</span> x = 10
+cob&gt; <span class="kw">recipe</span> square(n):
+...      <span class="kw">serve</span> n * n
+...
+cob&gt; square(x)
+100
+cob&gt; :quit</pre>
+  <ul>
+    <li><b>A bare expression prints its value</b> &mdash; numbers plainly, strings in quotes so <code>"5"</code> and <code>5</code> look different. A recipe call that ends without <code>serve</code> prints nothing.</li>
+    <li><b>A line ending in <code>:</code> starts a block.</b> Keep typing indented lines (the prompt becomes <code>...</code>) and finish with a blank line.</li>
+    <li><b>Typing a recipe again replaces it.</b> Mistakes print an error and the session carries on.</li>
+    <li><b>Commands:</b> <code>:help</code>, <code>:vars</code>, <code>:recipes</code> (or <code>:funcs</code>), <code>:load &lt;file.cob&gt;</code>, <code>:reset</code>, <code>:quit</code> (or Ctrl-D).</li>
+    <li><b><code>cob_interp file.cob -i</code></b> runs a file first and then stays in the REPL with everything it defined. A file that fails to start does not drop you into the REPL.</li>
+    <li>Prompts and the banner only appear on a real terminal, so <code>cob_interp --repl &lt; script.txt</code> is scriptable.</li>
+  </ul>
+  <div class="note">The REPL is part of <code>cob_interp</code> only &mdash; not <code>popcorn_comp</code>, and not the browser build.</div>
 </section>
 
-<section id="cobwindow">
-  <h3 id="cobwindow-h">_cobwindow &mdash; a native window, backed by raylib + raygui</h3>
+<section id="stdlib">
+  <h2>The standard library <span class="badge">0.0.9</span></h2>
   <p>
-    A small, real (not simulated) desktop window, opened with
-    <code>shuck cobwindow</code> first.
+    Everything beyond the core language is a <b>module</b>: a real shared library
+    (<code>lib&lt;name&gt;.so</code> on Linux, <code>lib&lt;name&gt;.dylib</code> on macOS,
+    <code>&lt;name&gt;.dll</code> on Windows) plus a small <code>&lt;name&gt;.cob</code> wrapper of
+    <a href="#extern"><code>extern</code></a> declarations. <code>shuck &lt;name&gt;</code> loads the
+    wrapper, which loads the library. Every module and every function is corn themed.
   </p>
   <table>
-    <tr><th>Call</th><th>Returns</th></tr>
-    <tr><td><code>window_open(&lt;title&gt;)</code></td><td>handle (int), <code>0</code> on failure</td></tr>
-    <tr><td><code>window_label(&lt;h&gt;, &lt;text&gt;)</code></td><td><code>0</code> &mdash; sets/replaces the window's text</td></tr>
-    <tr><td><code>window_wait(&lt;h&gt;, &lt;seconds&gt;)</code></td><td><code>0</code> &mdash; keeps the window responsive for ~&lt;seconds&gt;</td></tr>
-    <tr><td><code>window_close(&lt;h&gt;)</code></td><td><code>0</code></td></tr>
-    <tr><td><code>window_button(&lt;h&gt;, &lt;label&gt;)</code></td><td><code>1</code> if clicked since the last read of that label, else <code>0</code></td></tr>
-    <tr><td><code>window_slider(&lt;h&gt;, &lt;label&gt;, &lt;max&gt;)</code></td><td>current value, <code>0</code>..&lt;max&gt;, as an int</td></tr>
-    <tr><td><code>window_textbox(&lt;h&gt;, &lt;label&gt;)</code></td><td>current string contents of the box</td></tr>
+    <tr><th>shuck</th><th>What it is</th><th>Functions</th></tr>
+    <tr><td><a href="#lib-porch"><code>porch</code></a></td><td>talk to whoever is at the keyboard</td><td><code>porch_ask</code> <code>porch_ask_int</code></td></tr>
+    <tr><td><a href="#lib-cornmath"><code>cornmath</code></a></td><td>numbers beyond <code>+ - * /</code></td><td><code>husk_abs</code> <code>ear_max</code> <code>ear_min</code> <code>stalk_pow</code> <code>stalk_sqrt</code> <code>silk_mod</code> <code>scatter_seed</code> <code>scatter_rand</code></td></tr>
+    <tr><td><a href="#lib-kernels"><code>kernels</code></a></td><td>text, kernel by kernel</td><td><code>kernel_len</code> <code>kernel_upper</code> <code>kernel_lower</code> <code>kernel_slice</code> <code>kernel_find</code> <code>kernel_repeat</code> <code>kernel_trim</code> <code>kernel_replace</code> <code>kernel_char</code> <code>kernel_code</code> <code>kernel_from_code</code> <code>kernel_to_int</code> <code>kernel_starts</code> <code>kernel_ends</code></td></tr>
+    <tr><td><a href="#lib-almanac"><code>almanac</code></a></td><td>the farmer's calendar and clock</td><td><code>almanac_now</code> <code>almanac_ticks</code> <code>almanac_nap</code> <code>almanac_year</code> <code>almanac_stamp</code></td></tr>
+    <tr><td><a href="#lib-granary"><code>granary</code></a></td><td>files, stored like grain</td><td><code>granary_read</code> <code>granary_write</code> <code>granary_append</code> <code>granary_exists</code> <code>granary_remove</code></td></tr>
+    <tr><td><a href="#lib-pantry"><code>pantry</code></a></td><td>a SQLite database to keep things in</td><td><code>pantry_open</code> <code>pantry_exec</code> <code>pantry_query</code> <code>pantry_close</code></td></tr>
+    <tr><td><a href="#lib-barn"><code>barn</code></a></td><td>a window to put things in</td><td><code>barn_open</code> <code>barn_label</code> <code>barn_wait</code> <code>barn_close</code> <code>barn_button</code> <code>barn_slider</code> <code>barn_textbox</code></td></tr>
+    <tr><td><a href="#lib-tassel"><code>tassel</code></a></td><td>Tcl and Tk</td><td><code>tassel_tcl</code> <code>tassel_tk</code></td></tr>
+    <tr><td><a href="#lib-silo"><code>silo</code></a></td><td>the everyday five in one go</td><td><code>porch</code> + <code>cornmath</code> + <code>kernels</code> + <code>almanac</code> + <code>granary</code></td></tr>
   </table>
-  <pre><span class="kw">shuck</span> cobwindow
-<span class="kw">set</span> h = window_open(<span class="str">"Cob Window Demo"</span>)
-<span class="kw">set</span> rc = window_label(h, <span class="str">"Hello from Cob!"</span>)
-<span class="kw">set</span> clicked = window_button(h, <span class="str">"OK"</span>)
-<span class="kw">set</span> volume = window_slider(h, <span class="str">"Volume"</span>, 100)
-<span class="kw">set</span> name = window_textbox(h, <span class="str">"Name"</span>)
-<span class="kw">set</span> rc = window_wait(h, 5)
-<span class="kw">set</span> rc = window_close(h)</pre>
+  <h3>Where the libraries live</h3>
   <p>
-    Each widget is identified by its own label text, not a separate
-    handle &mdash; the first <code>window_button()</code>/
-    <code>window_slider()</code>/<code>window_textbox()</code> call
-    with a given label creates that widget, auto-stacked on screen
-    below the <code>window_label()</code> text; every later call with
-    the same label (and kind &mdash; a button and a slider can share a
-    label without colliding) reads or updates that same widget.
-    Declaring and reading happen in the same call, since Cob has no
-    separate "declare once, poll every frame" mechanism:
+    In a <code>lib/</code> folder next to the tools (<code>cob_interp</code>, <code>popcorn_comp</code>),
+    or wherever the <code>COB_STDLIB</code> environment variable points. <code>make</code> builds it
+    into <code>bin/lib/</code>; ship it beside the binaries. If a library can't be found you get one
+    warning naming it, and its functions evaluate to <code>0</code> or <code>""</code>.
   </p>
   <ul>
-    <li><code>window_button()</code>'s click flag resets on read, so a click is reported exactly once.</li>
-    <li><code>window_slider()</code> re-ranges (and clamps the current value into the new range) if called again with a different <code>&lt;max&gt;</code>.</li>
-    <li><code>window_textbox()</code> is always in an editable state &mdash; Cob has no click-to-focus concept to hook a toggle to.</li>
+    <li><b>Forgetting a <code>shuck</code></b> is a clear error: <code>'kernel_len' is not defined -- it is in the standard library: add `shuck kernels` at the top</code>.</li>
+    <li><b>Wrong arguments</b> to a library function print a warning (<code>[kernels] warning: kernel_slice() takes 3 arguments, got 2</code>) and give a harmless default (<code>0</code> or <code>""</code>); they never crash. Library warnings are tagged with the module name.</li>
+    <li><b>The same in both tools.</b> <code>popcorn_comp</code> links the same shared libraries and records the library folder as an rpath, so a compiled program behaves like the interpreted one, warnings included &mdash; but it must be linked dynamically, so keep <code>lib/</code> where it was when you compiled (or set <code>COB_STDLIB</code>).</li>
   </ul>
   <div class="note">
-    Only one native window per process &mdash; calling
-    <code>window_open()</code> again before closing the first warns
-    and returns <code>0</code>. The window's own close button
-    (<code>[X]</code>) is intentionally ignored; Cob has no callback
-    mechanism to notify a running script that it was clicked, so the
-    window stays open until <code>window_wait()</code>'s timer runs
-    out or <code>window_close()</code> is called explicitly &mdash;
-    the same "explicit close only" model <code>harvest()</code>/
-    <code>trash()</code> use for memory. Running more than one
-    <code>window_textbox()</code> at a time hasn't been verified for
-    keyboard-focus behavior; treat that as unverified rather than
-    unsupported.
+    Not every module is in every build. The downloadable packages and the Docker image carry
+    <code>porch</code> <code>cornmath</code> <code>kernels</code> <code>almanac</code>
+    <code>granary</code> <code>pantry</code>; <code>barn</code> needs X11 and OpenGL to build and
+    <code>tassel</code> is a long from-source build, so both are opt-in
+    (<code>make stdlib-barn</code>, <code>make stdlib-tassel</code>). The browser playground
+    has no shared libraries to load, so it compiles <code>porch</code>, <code>cornmath</code>,
+    <code>kernels</code> and <code>almanac</code> in and makes the rest quiet no-ops with a one-time notice.
   </div>
-</section>
 
-<section id="tcl-tk">
-  <h3 id="tcl-tk-h">Tcl/Tk &mdash; tcl_eval / tk_eval</h3>
+  <h3 id="lib-porch">porch &mdash; console input</h3>
+  <p><code>shuck porch</code>. Reads from standard input, so a program can be fed from a file or a pipe: <code>cob_interp quiz.cob &lt; answers.txt</code>.</p>
   <table>
     <tr><th>Call</th><th>Returns</th></tr>
-    <tr><td><code>tcl_eval(&lt;script&gt;)</code></td><td>string &mdash; Tcl's own string result</td></tr>
-    <tr><td><code>tk_eval(&lt;script&gt;)</code></td><td>string &mdash; same interpreter as <code>tcl_eval</code>, with Tk also loaded</td></tr>
+    <tr><td><code>porch_ask(&lt;prompt&gt;)</code></td><td>string &mdash; the line typed, without its line ending; <code>""</code> at end of input</td></tr>
+    <tr><td><code>porch_ask_int(&lt;prompt&gt;)</code></td><td>int &mdash; the line parsed as a whole number; <code>0</code> if it isn't one, or at end of input</td></tr>
   </table>
-  <pre>pop(<span class="str">"answer="</span> + tcl_eval(<span class="str">"expr {6*7}"</span>))  <span class="com"># answer=42</span></pre>
+  <pre><span class="kw">shuck</span> porch
+<span class="kw">set</span> name = porch_ask(<span class="str">"What is your name? "</span>)
+pop(<span class="str">"Nice to meet you, "</span> + name + <span class="str">"!"</span>)
+<span class="kw">set</span> age = porch_ask_int(<span class="str">"How old are you? "</span>)
+<span class="kw">set</span> next_year = age + 1
+pop(<span class="str">"Next year you will be "</span> + next_year)</pre>
+  <ul>
+    <li><b>The prompt</b> is optional, and can be a string or a number. It is printed without a trailing newline and flushed before reading, so it appears on the same line as the answer.</li>
+    <li><b>End of input</b> &mdash; a piped file that has run out, or Ctrl-D (Ctrl-Z on Windows) &mdash; makes <code>porch_ask()</code> return <code>""</code> and <code>porch_ask_int()</code> return <code>0</code>.</li>
+    <li><b><code>porch_ask_int</code> parsing.</b> Spaces or tabs around a base-10 number are fine, and so is a leading <code>-</code> or <code>+</code>. Anything else, including a blank line, gives <code>0</code>; a non-blank non-number also prints <code>[porch] warning: porch_ask_int() got non-numeric input "abc"; treated as 0</code> on stderr.</li>
+    <li><b>Windows line endings</b> (<code>\r\n</code>) are stripped.</li>
+  </ul>
   <div class="note">
-    Only in the separate <code>cob_interp_db</code> build &mdash; see
-    <a href="#cob-interp">below</a>. Needs a real X11 <code>$DISPLAY</code>
-    at runtime for <code>tk_eval()</code>; without one it evaluates to
-    a normal Tcl error string, the same as real Tk would report, not a
-    crash.
+    <b>Watch the end of input.</b> A loop that waits for the right answer, such as
+    <code>while guess != secret:</code>, can't tell "the right answer" from "no more answers": once the
+    input runs out <code>porch_ask_int</code> keeps returning <code>0</code>. Make sure the loop has
+    another way out.
   </div>
+
+  <h3 id="lib-cornmath">cornmath &mdash; numbers</h3>
+  <p><code>shuck cornmath</code>. All arguments and results are integers.</p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>husk_abs(n)</code></td><td>absolute value</td></tr>
+    <tr><td><code>ear_max(a, b)</code> / <code>ear_min(a, b)</code></td><td>the larger / smaller of two numbers</td></tr>
+    <tr><td><code>stalk_pow(base, exp)</code></td><td><code>base</code> to a whole-number power; <code>0</code> (with a warning) for a negative exponent</td></tr>
+    <tr><td><code>stalk_sqrt(n)</code></td><td>square root rounded down; <code>0</code> (with a warning) for a negative number</td></tr>
+    <tr><td><code>silk_mod(a, b)</code></td><td>remainder with the sign of <code>b</code> (so <code>silk_mod(0 - 7, 3)</code> is <code>2</code>); <code>0</code> (with a warning) when <code>b</code> is 0</td></tr>
+    <tr><td><code>scatter_seed(n)</code></td><td>seed the random numbers, for repeatable runs; returns <code>0</code></td></tr>
+    <tr><td><code>scatter_rand(lo, hi)</code></td><td>a random whole number from <code>lo</code> to <code>hi</code>, both included</td></tr>
+  </table>
+  <pre><span class="kw">shuck</span> cornmath
+scatter_seed(42)
+<span class="kw">set</span> roll = scatter_rand(1, 6)
+pop(<span class="str">"You rolled "</span> + roll)
+pop(silk_mod(17, 5))</pre>
+  <p class="dim"><code>scatter_rand</code> uses its own generator, so a seeded run gives the same numbers on every platform. Unseeded, it starts from the clock.</p>
+
+  <h3 id="lib-kernels">kernels &mdash; text</h3>
+  <p><code>shuck kernels</code>. Positions count from 0 and count bytes (plain ASCII text).</p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>kernel_len(s)</code></td><td>number of characters</td></tr>
+    <tr><td><code>kernel_upper(s)</code> / <code>kernel_lower(s)</code></td><td>the text in upper / lower case (ASCII)</td></tr>
+    <tr><td><code>kernel_slice(s, start, count)</code></td><td><code>count</code> characters from position <code>start</code>, clipped to the text</td></tr>
+    <tr><td><code>kernel_find(hay, needle)</code></td><td>position of the first match, or <code>-1</code></td></tr>
+    <tr><td><code>kernel_repeat(s, n)</code></td><td><code>s</code> written <code>n</code> times (<code>""</code> if <code>n</code> is 0 or less)</td></tr>
+    <tr><td><code>kernel_trim(s)</code></td><td>without leading and trailing blanks</td></tr>
+    <tr><td><code>kernel_replace(s, from, to)</code></td><td>every <code>from</code> swapped for <code>to</code></td></tr>
+    <tr><td><code>kernel_char(s, i)</code></td><td>the one-character string at position <code>i</code> (<code>""</code> if there isn't one)</td></tr>
+    <tr><td><code>kernel_code(s)</code></td><td>byte value of the first character (<code>0</code> if empty)</td></tr>
+    <tr><td><code>kernel_from_code(n)</code></td><td>the one-character string with byte value <code>n</code> (1 to 255)</td></tr>
+    <tr><td><code>kernel_to_int(s)</code></td><td><code>s</code> read as a whole number; <code>0</code> if it isn't one</td></tr>
+    <tr><td><code>kernel_starts(s, prefix)</code> / <code>kernel_ends(s, suffix)</code></td><td><code>1</code> or <code>0</code></td></tr>
+  </table>
+  <pre><span class="kw">shuck</span> kernels
+<span class="kw">set</span> word = <span class="str">"popcorn"</span>
+pop(kernel_upper(word) + <span class="str">" has "</span> + kernel_len(word) + <span class="str">" letters"</span>)
+pop(kernel_slice(word, 3, 4))
+pop(kernel_replace(<span class="str">"a-b-c"</span>, <span class="str">"-"</span>, <span class="str">"+"</span>))</pre>
+
+  <h3 id="lib-almanac">almanac &mdash; time</h3>
+  <p><code>shuck almanac</code>.</p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>almanac_now()</code></td><td>seconds since 1970-01-01 (Unix time)</td></tr>
+    <tr><td><code>almanac_ticks()</code></td><td>milliseconds on a steady clock &mdash; for timing things</td></tr>
+    <tr><td><code>almanac_nap(ms)</code></td><td>sleeps for <code>ms</code> milliseconds; returns <code>0</code></td></tr>
+    <tr><td><code>almanac_year()</code></td><td>the current year, in local time</td></tr>
+    <tr><td><code>almanac_stamp()</code></td><td>the local date and time as <code>"YYYY-MM-DD HH:MM:SS"</code></td></tr>
+  </table>
+  <pre><span class="kw">shuck</span> almanac
+<span class="kw">set</span> start = almanac_ticks()
+almanac_nap(250)
+<span class="kw">set</span> took = almanac_ticks() - start
+pop(<span class="str">"that took "</span> + took + <span class="str">" ms"</span>)</pre>
+
+  <h3 id="lib-granary">granary &mdash; files</h3>
+  <p><code>shuck granary</code>. Text files only: contents are read up to the first zero byte.</p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>granary_read(path)</code></td><td>the whole file as a string; <code>""</code> (with a warning) if it can't be read</td></tr>
+    <tr><td><code>granary_write(path, text)</code></td><td>replaces the file's contents; <code>0</code> on success, <code>1</code> on failure</td></tr>
+    <tr><td><code>granary_append(path, text)</code></td><td>adds to the end of the file; <code>0</code> on success, <code>1</code> on failure</td></tr>
+    <tr><td><code>granary_exists(path)</code></td><td><code>1</code> if the file can be opened, else <code>0</code></td></tr>
+    <tr><td><code>granary_remove(path)</code></td><td>deletes the file; <code>0</code> on success, <code>1</code> on failure</td></tr>
+  </table>
+  <pre><span class="kw">shuck</span> granary
+<span class="kw">set</span> rc = granary_write(<span class="str">"notes.txt"</span>, <span class="str">"first line\n"</span>)
+<span class="kw">set</span> rc = granary_append(<span class="str">"notes.txt"</span>, <span class="str">"second line\n"</span>)
+pop(granary_read(<span class="str">"notes.txt"</span>))</pre>
+
+  <h3 id="lib-pantry">pantry &mdash; SQLite</h3>
+  <p><code>shuck pantry</code>. The SQLite amalgamation is compiled into the library. Up to 16 databases can be open at once.</p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>pantry_open(path)</code></td><td>handle (int), <code>0</code> on failure. <code>":memory:"</code> opens a database that lives only in memory.</td></tr>
+    <tr><td><code>pantry_exec(h, sql)</code></td><td><code>0</code> on success, <code>-1</code> (with a warning) on failure &mdash; for statements that give no answer</td></tr>
+    <tr><td><code>pantry_query(h, sql)</code></td><td>string &mdash; first column of the first row, <code>""</code> if none</td></tr>
+    <tr><td><code>pantry_close(h)</code></td><td><code>0</code></td></tr>
+  </table>
+  <pre><span class="kw">shuck</span> pantry
+<span class="kw">set</span> h = pantry_open(<span class="str">"scores.db"</span>)
+<span class="kw">set</span> rc = pantry_exec(h, <span class="str">"CREATE TABLE IF NOT EXISTS t (name TEXT)"</span>)
+<span class="kw">set</span> rc = pantry_exec(h, <span class="str">"INSERT INTO t VALUES ('cob')"</span>)
+<span class="kw">set</span> name = pantry_query(h, <span class="str">"SELECT name FROM t LIMIT 1"</span>)
+pop(<span class="str">"got: "</span> + name)
+<span class="kw">set</span> rc = pantry_close(h)</pre>
+  <div class="note">Using a handle after <code>pantry_close</code> (or one that was never opened) warns and gives <code>-1</code> / <code>""</code> &mdash; it does not crash.</div>
+
+  <h3 id="lib-barn">barn &mdash; a native window</h3>
+  <p><code>shuck barn</code>. Backed by raylib + raygui. Needs a display, and the <code>barn</code> library, which is opt-in to build (<code>make stdlib-barn</code>).</p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>barn_open(title)</code></td><td>handle (<code>1</code>), <code>0</code> on failure (for example, no display)</td></tr>
+    <tr><td><code>barn_label(h, text)</code></td><td><code>0</code> &mdash; sets/replaces the window's text</td></tr>
+    <tr><td><code>barn_wait(h, seconds)</code></td><td><code>0</code> &mdash; keeps the window responsive for about <code>seconds</code></td></tr>
+    <tr><td><code>barn_close(h)</code></td><td><code>0</code></td></tr>
+    <tr><td><code>barn_button(h, label)</code></td><td><code>1</code> if clicked since the last read of that label, else <code>0</code></td></tr>
+    <tr><td><code>barn_slider(h, label, max)</code></td><td>current value, <code>0</code> to <code>max</code>, as an int</td></tr>
+    <tr><td><code>barn_textbox(h, label)</code></td><td>current string contents of the box</td></tr>
+  </table>
+  <pre><span class="kw">shuck</span> barn
+<span class="kw">set</span> h = barn_open(<span class="str">"Cob Window Demo"</span>)
+<span class="kw">set</span> rc = barn_label(h, <span class="str">"Hello from Cob!"</span>)
+<span class="kw">set</span> clicked = barn_button(h, <span class="str">"OK"</span>)
+<span class="kw">set</span> volume = barn_slider(h, <span class="str">"Volume"</span>, 100)
+<span class="kw">set</span> name = barn_textbox(h, <span class="str">"Name"</span>)
+<span class="kw">set</span> rc = barn_wait(h, 5)
+<span class="kw">set</span> rc = barn_close(h)</pre>
+  <p>
+    Widgets are identified by their label: the first <code>barn_button()</code>/<code>barn_slider()</code>/<code>barn_textbox()</code>
+    call with a given label creates it, stacked below the <code>barn_label()</code> text; every later call with the
+    same label reads it (a slider is re-ranged, and its value clamped, if called again with a different <code>max</code>).
+    Up to 16 widgets per window.
+  </p>
+  <ul>
+    <li><code>barn_button()</code>'s click flag resets on read, so a click is reported exactly once.</li>
+    <li><code>barn_textbox()</code> is always editable &mdash; there is no click-to-focus.</li>
+  </ul>
+  <div class="note">
+    Only one native window per process &mdash; calling <code>barn_open()</code> again before closing the first
+    warns and returns <code>0</code>. The window's own close button (<code>[X]</code>) is intentionally ignored: the
+    window stays open until <code>barn_wait()</code>'s timer runs out or <code>barn_close()</code> is called
+    explicitly. Running more than one <code>barn_textbox()</code> at a time hasn't been verified for
+    keyboard-focus behavior; treat that as unverified rather than unsupported.
+  </div>
+
+  <h3 id="lib-tassel">tassel &mdash; Tcl and Tk</h3>
+  <p><code>shuck tassel</code>. One process-wide Tcl interpreter: variables and widgets persist between calls.</p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>tassel_tcl(script)</code></td><td>string &mdash; Tcl's own string result</td></tr>
+    <tr><td><code>tassel_tk(script)</code></td><td>string &mdash; the same interpreter, with Tk also loaded</td></tr>
+  </table>
+  <pre><span class="kw">shuck</span> tassel
+pop(<span class="str">"answer="</span> + tassel_tcl(<span class="str">"expr {6*7}"</span>))</pre>
+  <div class="note">
+    Opt-in to build (<code>make stdlib-tassel</code>): it compiles the vendored Tcl/Tk, and needs
+    <code>TCL_LIBRARY</code> pointed at Tcl's <code>library</code> folder at run time. <code>tassel_tk()</code> needs a real
+    X11 <code>$DISPLAY</code>; without one it evaluates to a normal Tcl error string, the same as real Tk would
+    report, not a crash.
+  </div>
+
+  <h3 id="lib-silo">silo &mdash; the everyday five</h3>
+  <p>
+    <code>shuck silo</code> is just <code>shuck porch</code>, <code>cornmath</code>, <code>kernels</code>,
+    <code>almanac</code> and <code>granary</code> together. The heavier modules (<code>pantry</code>,
+    <code>barn</code>, <code>tassel</code>) are shucked on their own.
+  </p>
+
+  <h3 id="upgrading">Upgrading from 0.0.8</h3>
+  <p>
+    The built-in <code>input</code>, SQLite, window and Tcl/Tk keywords are gone; they are standard library
+    functions now. An old name gives an error that says exactly what to write instead
+    (<code>'input' is now porch_ask() in the standard library: add `shuck porch` at the top and call porch_ask(...)</code>).
+  </p>
+  <table>
+    <tr><th>0.0.8</th><th>0.0.9</th></tr>
+    <tr><td><code>input(p)</code> / <code>input_int(p)</code></td><td><code>shuck porch</code>, then <code>porch_ask(p)</code> / <code>porch_ask_int(p)</code></td></tr>
+    <tr><td><code>sql_open</code> <code>sql_exec</code> <code>sql_query</code> <code>sql_close</code></td><td><code>shuck pantry</code>, then <code>pantry_open</code> <code>pantry_exec</code> <code>pantry_query</code> <code>pantry_close</code></td></tr>
+    <tr><td><code>shuck cobwindow</code> + <code>window_open</code> <code>window_label</code> <code>window_wait</code> <code>window_close</code> <code>window_button</code> <code>window_slider</code> <code>window_textbox</code></td><td><code>shuck barn</code>, then <code>barn_open</code> <code>barn_label</code> <code>barn_wait</code> <code>barn_close</code> <code>barn_button</code> <code>barn_slider</code> <code>barn_textbox</code></td></tr>
+    <tr><td><code>tcl_eval</code> / <code>tk_eval</code></td><td><code>shuck tassel</code>, then <code>tassel_tcl</code> / <code>tassel_tk</code></td></tr>
+  </table>
+  <p>
+    Also new: <code>recipe</code> and <code>serve</code> are reserved words; the <code>.strawberry</code> cache format changed
+    (old caches are rebuilt automatically); and <code>cob_interp_full</code>, <code>cob_interp_db</code> and
+    <code>cob_interp_window</code> are no longer different builds &mdash; there is one interpreter, and those names are
+    kept only as <code>make</code> targets for old scripts. See the <a href="https://github.com/Cob-Software-Foundation/Cob/blob/main/Release.txt">release notes</a> for everything.
+  </p>
+
+  <h3 id="own-module">Write your own module</h3>
+  <p>
+    A module is the same thing the standard library is: a shared library whose functions all have one shape,
+    plus a wrapper that declares them. Include <code>include/cob.h</code> from the Cob source.
+  </p>
+  <pre><span class="com">/* doubler.c */</span>
+#include "cob.h"
+
+COB_EXPORT CobValue double_it(CobValue *argv, int argc) {
+    if (argc != 1 || argv[0].kind != COB_INT) return cob_int(0);
+    return cob_int(argv[0].as.i * 2);
+}</pre>
+  <pre>cc -shared -fPIC -Iinclude -o libdoubler.so doubler.c</pre>
+  <pre><span class="com"># doubler.cob -- the wrapper</span>
+<span class="kw">extern</span> double_it(n) <span class="kw">from</span> <span class="str">"./libdoubler.so"</span></pre>
+  <pre><span class="kw">shuck</span> doubler
+pop(double_it(21))</pre>
+  <p>
+    Values are <code>COB_INT</code> (<code>as.i</code>) or <code>COB_STR</code> (<code>as.s</code>); make one with
+    <code>cob_int(n)</code> or <code>cob_str(text)</code>. Cob copies a returned string immediately, so return a literal, a
+    static buffer, or a buffer you keep alive until your next call &mdash; never free it for Cob. Put the library and wrapper
+    in the standard library folder and <code>from "doubler"</code> works too.
+  </p>
 </section>
 
 <section id="cob-interp">
   <h2>Tool reference</h2>
 
   <h3>cob_interp</h3>
-  <pre>cob_interp &lt;file.cob&gt; [--no-cache] [--no-gc]</pre>
+  <pre>cob_interp [file.cob] [--no-cache] [--no-gc] [-i]</pre>
   <table>
+    <tr><td><em>(no file)</em></td><td>Start the interactive <a href="#repl">REPL</a>.</td></tr>
+    <tr><td><span class="flag">-i</span>, <span class="flag">--repl</span></td><td>Run the file, then stay in the REPL with everything it defined.</td></tr>
     <tr><td><span class="flag">--no-cache</span></td><td>Skip reading/writing the .strawberry cache for this run.</td></tr>
     <tr><td><span class="flag">--no-gc</span></td><td>Unlock <code>harvest()</code>/<code>trash()</code>.</td></tr>
   </table>
   <p>
-    <a href="#input"><code>input()</code></a> and <code>input_int()</code>
-    read standard input, so a program can be fed from a file or a pipe:
+    One interpreter, the core language only. Console input, text, SQLite, windows and the rest are
+    <a href="#stdlib">standard library modules</a> you <code>shuck</code>; <a href="#lib-porch"><code>porch_ask()</code></a>
+    reads standard input, so a program can be fed from a file or a pipe:
     <code>cob_interp quiz.cob &lt; answers.txt</code>.
   </p>
-  <p>Four build variants, all built from the same <code>src/cob_interp.c</code>:</p>
-  <table>
-    <tr><th>Build</th><th>Adds on top of the core language above</th></tr>
-    <tr><td><code>cob_interp</code></td><td>Nothing &mdash; zero vendor dependency, builds in under a second.</td></tr>
-    <tr><td><code>cob_interp_window</code></td><td><a href="#cobwindow">_cobwindow</a> (raylib + raygui).</td></tr>
-    <tr><td><code>cob_interp_full</code></td><td><a href="#sql">SQLite</a> + <a href="#cobwindow">_cobwindow</a> &mdash; <b>what a plain <code>make</code> builds by default.</b></td></tr>
-    <tr><td><code>cob_interp_db</code></td><td><a href="#sql">SQLite</a> + <a href="#tcl-tk">Tcl/Tk</a> (no <code>_cobwindow</code>).</td></tr>
-  </table>
-  <div class="note">
-    Calling a <code>sql_*</code>/<code>window_*</code>/<code>tcl_eval</code>/<code>tk_eval</code>
-    keyword in a build that doesn't include it prints a one-line
-    warning and evaluates to a harmless default (<code>0</code> or
-    <code>""</code>) rather than failing to build or crashing.
-  </div>
+  <p>The <code>.strawberry</code> cache format is version <code>COBSTRW10</code>; caches written by earlier releases are detected and rebuilt.</p>
 </section>
 
 <section id="popcorn-comp">
@@ -514,17 +719,21 @@ pop(<span class="str">"got: "</span> + name)
   <pre>CobOS=windows CobArch=amd64 popcorn_comp prog.strawberry -o prog.exe
 <span class="com"># -&gt; spawns: zig cc -target x86_64-windows-gnu ...</span></pre>
   <div class="note">
-    Linux targets default to <b>musl</b> libc rather than glibc,
-    producing fully static binaries with no runtime libc dependency.
+    Linux cross-compile targets default to <b>musl</b> libc rather than glibc,
+    producing fully static binaries with no runtime libc dependency (see the
+    note below about the standard library).
   </div>
   <div class="note">
-    The <a href="#sql">SQLite</a>/<a href="#cobwindow">_cobwindow</a>/<a href="#tcl-tk">Tcl/Tk</a>
-    extensions above are <code>cob_interp</code>-only for now &mdash;
-    <code>popcorn_comp</code>'s codegen doesn't implement any of them
-    yet. A <code>.strawberry</code> cache that uses one of those
-    keywords still loads (the format is shared and stays
-    backward-readable), it just fails cleanly at the specific
-    unsupported call instead of at load time.
+    <a href="#recipe">Recipes</a> and every <a href="#stdlib">standard library</a> module compile, because
+    library calls are ordinary shared-library calls: the finished program is linked with
+    <code>-l&lt;module&gt;</code> and the standard library folder is recorded as its rpath. Two
+    consequences: the program must be linked <b>dynamically</b> (a static program can't use shared libraries &mdash;
+    and the Linux <b>musl</b> targets above are static), and a cross-compiled program needs those modules built for its
+    target, with <code>COB_STDLIB</code> pointing at them when you compile. Programs that use only the core language are unaffected.
+  </div>
+  <div class="note">
+    Without <code>--cc</code> or <code>$CobCC</code>, <code>popcorn_comp</code> looks for <code>zig cc</code>. If you
+    don't have Zig, name your C compiler: <code>CobCC=cc popcorn_comp prog.strawberry -o prog</code>.
   </div>
 </section>
 
@@ -548,6 +757,24 @@ pop(<span class="str">"got: "</span> + name)
     served for free via GitHub Pages &mdash; no server, just static
     JSON files.
   </p>
+</section>
+
+<section id="docker">
+  <h3 id="docker-h">Docker <span class="badge">0.0.9</span></h3>
+  <p>
+    GitHub Actions builds, tests and publishes a container image (linux/amd64 and linux/arm64) with the interpreter
+    and REPL, <code>popcorn_comp</code>, <code>farmer</code> and the standard library &mdash; everything except
+    <code>barn</code> and <code>tassel</code>, which need a display or a long from-source build.
+  </p>
+  <pre>docker run -it --rm ghcr.io/cob-software-foundation/cob
+docker run --rm -v "$PWD:/work" ghcr.io/cob-software-foundation/cob hello.cob
+docker run --rm -v "$PWD:/work" ghcr.io/cob-software-foundation/cob popcorn_comp hello.strawberry -o hello</pre>
+  <ul>
+    <li>The first command is the <a href="#repl">REPL</a>. Anything that is not the name of another tool in the image (<code>popcorn_comp</code>, <code>farmer</code>, <code>sh</code>) goes to <code>cob_interp</code>.</li>
+    <li>The image runs as an unprivileged user. To read and write your own files as yourself add <code>--user "$(id -u):$(id -g)"</code>.</li>
+    <li>A program compiled inside the image is for the image (its glibc, its <code>lib/</code>): run it there with <code>--entrypoint /work/hello</code> rather than copying it to another machine.</li>
+    <li>Build it yourself with <code>docker build -t cob .</code>; the build runs the whole test suite.</li>
+  </ul>
 </section>
 
 </main>

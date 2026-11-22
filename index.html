@@ -107,7 +107,7 @@
 <div class="layout">
 <nav>
   <h1>Cob</h1>
-  <div class="codename">v0.0.9 &middot; Project Obsidian Falcon</div>
+  <div class="codename">v0.0.10 &middot; Project Obsidian Falcon</div>
 
   <div class="section-label">Guide</div>
   <ul>
@@ -137,10 +137,13 @@
     <li><a href="#lib-kernels">kernels (text)</a></li>
     <li><a href="#lib-almanac">almanac (time)</a></li>
     <li><a href="#lib-granary">granary (files)</a></li>
+    <li><a href="#lib-bushel">bushel (lists)</a></li>
+    <li><a href="#lib-furrow">furrow (arrays)</a></li>
     <li><a href="#lib-pantry">pantry (SQLite)</a></li>
     <li><a href="#lib-barn">barn (windows)</a></li>
     <li><a href="#lib-tassel">tassel (Tcl/Tk)</a></li>
     <li><a href="#lib-silo">silo (everyday five)</a></li>
+    <li><a href="#upgrading-0-0-9">Upgrading from 0.0.9</a></li>
     <li><a href="#upgrading">Upgrading from 0.0.8</a></li>
     <li><a href="#own-module">Write your own module</a></li>
   </ul>
@@ -177,7 +180,7 @@ pop(countdown(3))</pre>
     The language itself is small: variables, arithmetic, <code>pop</code>,
     <code>while</code>, <code>if</code>, <code>recipe</code> and
     <code>shuck</code>. Everything else &mdash; reading what the person
-    types, text, numbers, time, files, SQLite, windows, Tcl/Tk &mdash; is
+    types, text, numbers, time, files, lists, arrays, SQLite, windows, Tcl/Tk &mdash; is
     the <a href="#stdlib">standard library</a>: real shared libraries
     brought in with <code>shuck</code>, every name corn themed.
   </p>
@@ -193,6 +196,12 @@ pop(countdown(3))</pre>
     <tr><td><code>farmer</code></td><td>The package manager &mdash; installs .cob libraries from a static registry.</td></tr>
     <tr><td><code>lib/</code></td><td>The <a href="#stdlib">standard library</a>: one shared library per module, with its <code>.cob</code> wrapper. Keep it next to the tools.</td></tr>
   </table>
+  <div class="note">
+    <b>Setup wizards</b> <span class="badge">0.0.10</span> &mdash; for Windows and macOS (Apple Silicon and Intel) there is a
+    graphical setup wizard that unpacks the toolchain and <code>lib/</code> into a folder you choose. It is portable: no registry,
+    <code>PATH</code> or administrator changes, so add that folder to your <code>PATH</code> yourself or run the interpreter from it.
+    It is not code signed yet, so Windows SmartScreen and macOS Gatekeeper will each ask you to approve it once.
+  </div>
 </section>
 
 <section id="pop">
@@ -385,7 +394,7 @@ pop(<span class="str">"always reparsed fresh"</span>)</pre>
     does the same). Variables and recipes persist from one input to the next.
   </p>
   <pre>$ cob_interp
-Cob 0.0.9 REPL -- :help for help, :quit or Ctrl-D to leave
+Cob 0.0.10 REPL -- :help for help, :quit or Ctrl-D to leave
 cob&gt; 1 + 2
 3
 cob&gt; <span class="kw">set</span> x = 10
@@ -422,6 +431,8 @@ cob&gt; :quit</pre>
     <tr><td><a href="#lib-kernels"><code>kernels</code></a></td><td>text, kernel by kernel</td><td><code>kernel_len</code> <code>kernel_upper</code> <code>kernel_lower</code> <code>kernel_slice</code> <code>kernel_find</code> <code>kernel_repeat</code> <code>kernel_trim</code> <code>kernel_replace</code> <code>kernel_char</code> <code>kernel_code</code> <code>kernel_from_code</code> <code>kernel_to_int</code> <code>kernel_starts</code> <code>kernel_ends</code></td></tr>
     <tr><td><a href="#lib-almanac"><code>almanac</code></a></td><td>the farmer's calendar and clock</td><td><code>almanac_now</code> <code>almanac_ticks</code> <code>almanac_nap</code> <code>almanac_year</code> <code>almanac_stamp</code></td></tr>
     <tr><td><a href="#lib-granary"><code>granary</code></a></td><td>files, stored like grain</td><td><code>granary_read</code> <code>granary_write</code> <code>granary_append</code> <code>granary_exists</code> <code>granary_remove</code></td></tr>
+    <tr><td><a href="#lib-bushel"><code>bushel</code></a></td><td>lists that grow, a bushel of whatever you pick</td><td><code>bushel_new</code> <code>bushel_free</code> <code>bushel_len</code> <code>bushel_push</code> <code>bushel_get</code> <code>bushel_set</code> <code>bushel_insert</code> <code>bushel_remove</code> <code>bushel_clear</code> <code>bushel_find</code> <code>bushel_sort</code> <code>bushel_reverse</code> <code>bushel_extend</code> <code>bushel_copy</code> <code>bushel_join</code> <code>bushel_split</code></td></tr>
+    <tr><td><a href="#lib-furrow"><code>furrow</code></a></td><td>arrays: a fixed-length row, planted once</td><td><code>furrow_new</code> <code>furrow_free</code> <code>furrow_len</code> <code>furrow_get</code> <code>furrow_set</code> <code>furrow_fill</code> <code>furrow_swap</code> <code>furrow_find</code> <code>furrow_sum</code> <code>furrow_sort</code> <code>furrow_copy</code></td></tr>
     <tr><td><a href="#lib-pantry"><code>pantry</code></a></td><td>a SQLite database to keep things in</td><td><code>pantry_open</code> <code>pantry_exec</code> <code>pantry_query</code> <code>pantry_close</code></td></tr>
     <tr><td><a href="#lib-barn"><code>barn</code></a></td><td>a window to put things in</td><td><code>barn_open</code> <code>barn_label</code> <code>barn_wait</code> <code>barn_close</code> <code>barn_button</code> <code>barn_slider</code> <code>barn_textbox</code></td></tr>
     <tr><td><a href="#lib-tassel"><code>tassel</code></a></td><td>Tcl and Tk</td><td><code>tassel_tcl</code> <code>tassel_tk</code></td></tr>
@@ -442,11 +453,11 @@ cob&gt; :quit</pre>
   <div class="note">
     Not every module is in every build. The downloadable packages and the Docker image carry
     <code>porch</code> <code>cornmath</code> <code>kernels</code> <code>almanac</code>
-    <code>granary</code> <code>pantry</code>; <code>barn</code> needs X11 and OpenGL to build and
+    <code>granary</code> <code>bushel</code> <code>furrow</code> <code>pantry</code>; <code>barn</code> needs X11 and OpenGL to build and
     <code>tassel</code> is a long from-source build, so both are opt-in
     (<code>make stdlib-barn</code>, <code>make stdlib-tassel</code>). The browser playground
     has no shared libraries to load, so it compiles <code>porch</code>, <code>cornmath</code>,
-    <code>kernels</code> and <code>almanac</code> in and makes the rest quiet no-ops with a one-time notice.
+    <code>kernels</code>, <code>almanac</code>, <code>bushel</code> and <code>furrow</code> in and makes the rest quiet no-ops with a one-time notice.
   </div>
 
   <h3 id="lib-porch">porch &mdash; console input</h3>
@@ -548,6 +559,109 @@ pop(<span class="str">"that took "</span> + took + <span class="str">" ms"</span
 <span class="kw">set</span> rc = granary_append(<span class="str">"notes.txt"</span>, <span class="str">"second line\n"</span>)
 pop(granary_read(<span class="str">"notes.txt"</span>))</pre>
 
+  <h3 id="lib-bushel">bushel &mdash; lists <span class="badge">0.0.10</span></h3>
+  <p>
+    <code>shuck bushel</code>. A list grows as you add to it and holds numbers and strings, mixed freely. A list is a
+    <b>handle</b>: a whole number (1 or more) you keep in a variable, the way <a href="#harvest-trash"><code>harvest</code></a>
+    and <code>pantry_open</code> give you one. Positions count from 0. For a row whose length never changes, see
+    <a href="#lib-furrow"><code>furrow</code></a>.
+  </p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>bushel_new()</code></td><td>a new, empty list (its handle)</td></tr>
+    <tr><td><code>bushel_free(b)</code></td><td><code>0</code>; the list is thrown away (<code>1</code> if <code>b</code> is not a live list)</td></tr>
+    <tr><td><code>bushel_len(b)</code></td><td>how many items it holds</td></tr>
+    <tr><td><code>bushel_push(b, v)</code></td><td><code>0</code>; <code>v</code> is added at the end (<code>1</code> on failure)</td></tr>
+    <tr><td><code>bushel_get(b, i)</code></td><td>the item at position <code>i</code> (<code>0</code> if there isn't one)</td></tr>
+    <tr><td><code>bushel_set(b, i, v)</code></td><td><code>0</code>; the item at <code>i</code> is replaced (<code>1</code> if there is no such position)</td></tr>
+    <tr><td><code>bushel_insert(b, i, v)</code></td><td><code>0</code>; <code>v</code> goes in at <code>i</code> and later items move up. <code>i</code> may equal <code>bushel_len(b)</code>, which adds at the end</td></tr>
+    <tr><td><code>bushel_remove(b, i)</code></td><td>the item that was at <code>i</code>, now taken out (<code>0</code> if there isn't one)</td></tr>
+    <tr><td><code>bushel_clear(b)</code></td><td><code>0</code>; every item removed</td></tr>
+    <tr><td><code>bushel_find(b, v)</code></td><td>position of the first item equal to <code>v</code>, or <code>-1</code></td></tr>
+    <tr><td><code>bushel_sort(b)</code></td><td><code>0</code>; numbers first, smallest first, then strings in byte order</td></tr>
+    <tr><td><code>bushel_reverse(b)</code></td><td><code>0</code>; the list turned around</td></tr>
+    <tr><td><code>bushel_extend(b, other)</code></td><td><code>0</code>; a copy of every item of <code>other</code> added to the end of <code>b</code> (they may be the same list)</td></tr>
+    <tr><td><code>bushel_copy(b)</code></td><td>a new list with the same items (its handle; <code>0</code> if <code>b</code> is not a list)</td></tr>
+    <tr><td><code>bushel_join(b, sep)</code></td><td>every item as text with <code>sep</code> between them (numbers are written out)</td></tr>
+    <tr><td><code>bushel_split(text, sep)</code></td><td>a new list of the pieces of <code>text</code>, empty pieces kept; a <code>sep</code> of <code>""</code> gives one byte per item</td></tr>
+  </table>
+  <pre><span class="kw">shuck</span> bushel
+<span class="kw">set</span> fruit = bushel_split(<span class="str">"pear,apple,fig"</span>, <span class="str">","</span>)
+bushel_push(fruit, <span class="str">"plum"</span>)
+bushel_sort(fruit)
+pop(bushel_join(fruit, <span class="str">", "</span>))
+pop(<span class="str">"the first is "</span> + bushel_get(fruit, 0))
+
+<span class="kw">set</span> nums = bushel_new()
+<span class="kw">set</span> i = 1
+<span class="kw">while</span> i &lt;= 5:
+    bushel_push(nums, i * i)
+    <span class="kw">set</span> i = i + 1
+pop(bushel_join(nums, <span class="str">" + "</span>))
+
+<span class="kw">recipe</span> total(list):
+    <span class="kw">set</span> sum = 0
+    <span class="kw">set</span> j = 0
+    <span class="kw">while</span> j &lt; bushel_len(list):
+        <span class="kw">set</span> sum = sum + bushel_get(list, j)
+        <span class="kw">set</span> j = j + 1
+    <span class="kw">serve</span> sum
+pop(<span class="str">"= "</span> + total(nums))</pre>
+  <ul>
+    <li><b>A number never equals a string.</b> <code>bushel_find(b, 3)</code> will not find <code>"3"</code>, and the pieces <code>bushel_split</code> makes are strings.</li>
+    <li><b>Mistakes warn and carry on.</b> A handle that was never made (or was freed) or a position that isn't there prints one warning, such as <code>[bushel] warning: bushel_get() -- position 5 is out of range (the list has 3 items)</code>, and gives <code>0</code> (or <code>1</code> from the calls above that report success), so a program is never stopped by them.</li>
+    <li><b>Limits.</b> A list holds at most 10,000,000 items; <code>bushel_push</code> says so and returns <code>1</code> beyond that. Handles are never reused, so <code>bushel_free</code> a list you are finished with.</li>
+    <li><b>Everywhere.</b> The same in <code>cob_interp</code>, in programs compiled by <code>popcorn_comp</code>, and in the browser playground.</li>
+  </ul>
+
+  <h3 id="lib-furrow">furrow &mdash; arrays <span class="badge">0.0.10</span></h3>
+  <p>
+    <code>shuck furrow</code>. An array has a length chosen when it is made and never changes. Every slot starts as the
+    number <code>0</code> and holds a number or a string. Like a <a href="#lib-bushel"><code>bushel</code></a> it is a handle,
+    and positions count from 0. Use a bushel when the length should change.
+  </p>
+  <table>
+    <tr><th>Call</th><th>Returns</th></tr>
+    <tr><td><code>furrow_new(n)</code></td><td>a new array of <code>n</code> slots, all <code>0</code> (its handle). <code>n</code> must be 0 to 10,000,000; otherwise a warning and <code>0</code></td></tr>
+    <tr><td><code>furrow_free(f)</code></td><td><code>0</code>; the array is thrown away (<code>1</code> if <code>f</code> is not a live array)</td></tr>
+    <tr><td><code>furrow_len(f)</code></td><td>how many slots it has</td></tr>
+    <tr><td><code>furrow_get(f, i)</code></td><td>the value in slot <code>i</code> (<code>0</code> if there is no such slot)</td></tr>
+    <tr><td><code>furrow_set(f, i, v)</code></td><td><code>0</code>; <code>v</code> is put in slot <code>i</code> (<code>1</code> if there is no such slot)</td></tr>
+    <tr><td><code>furrow_fill(f, v)</code></td><td><code>0</code>; <code>v</code> is put in every slot</td></tr>
+    <tr><td><code>furrow_swap(f, i, j)</code></td><td><code>0</code>; slots <code>i</code> and <code>j</code> exchange values (<code>1</code> if either is out of range)</td></tr>
+    <tr><td><code>furrow_find(f, v)</code></td><td>the first slot holding <code>v</code>, or <code>-1</code></td></tr>
+    <tr><td><code>furrow_sum(f)</code></td><td>the sum of the numbers in it (strings are skipped)</td></tr>
+    <tr><td><code>furrow_sort(f)</code></td><td><code>0</code>; numbers first, smallest first, then strings in byte order</td></tr>
+    <tr><td><code>furrow_copy(f)</code></td><td>a new array with the same values (its handle; <code>0</code> if <code>f</code> is not an array)</td></tr>
+  </table>
+  <pre><span class="kw">shuck</span> furrow
+<span class="kw">shuck</span> bushel
+<span class="kw">set</span> n = 30
+<span class="kw">set</span> sieve = furrow_new(n + 1)
+furrow_fill(sieve, 1)
+furrow_set(sieve, 0, 0)
+furrow_set(sieve, 1, 0)
+<span class="kw">set</span> p = 2
+<span class="kw">while</span> p * p &lt;= n:
+    <span class="kw">if</span> furrow_get(sieve, p) == 1:
+        <span class="kw">set</span> m = p * p
+        <span class="kw">while</span> m &lt;= n:
+            furrow_set(sieve, m, 0)
+            <span class="kw">set</span> m = m + p
+    <span class="kw">set</span> p = p + 1
+
+<span class="kw">set</span> primes = bushel_new()
+<span class="kw">set</span> k = 0
+<span class="kw">while</span> k &lt;= n:
+    <span class="kw">if</span> furrow_get(sieve, k) == 1:
+        bushel_push(primes, k)
+    <span class="kw">set</span> k = k + 1
+pop(furrow_sum(sieve) + <span class="str">" primes up to "</span> + n + <span class="str">": "</span> + bushel_join(primes, <span class="str">" "</span>))</pre>
+  <ul>
+    <li><b>A number never equals a string</b>, as in <code>bushel</code>: <code>furrow_find(f, 7)</code> will not find <code>"7"</code>.</li>
+    <li><b>Mistakes warn and carry on</b>, tagged with the module name: <code>[furrow] warning: furrow_get() -- slot 5 is out of range (the array has 5 slots)</code>. The call gives <code>0</code> (or <code>1</code> from the calls above that report success).</li>
+  </ul>
+
   <h3 id="lib-pantry">pantry &mdash; SQLite</h3>
   <p><code>shuck pantry</code>. The SQLite amalgamation is compiled into the library. Up to 16 databases can be open at once.</p>
   <table>
@@ -623,8 +737,26 @@ pop(<span class="str">"answer="</span> + tassel_tcl(<span class="str">"expr {6*7
   <h3 id="lib-silo">silo &mdash; the everyday five</h3>
   <p>
     <code>shuck silo</code> is just <code>shuck porch</code>, <code>cornmath</code>, <code>kernels</code>,
-    <code>almanac</code> and <code>granary</code> together. The heavier modules (<code>pantry</code>,
-    <code>barn</code>, <code>tassel</code>) are shucked on their own.
+    <code>almanac</code> and <code>granary</code> together. The other modules (<code>bushel</code>,
+    <code>furrow</code>, <code>pantry</code>, <code>barn</code>, <code>tassel</code>) are shucked on their own.
+  </p>
+
+  <h3 id="upgrading-0-0-9">Upgrading from 0.0.9</h3>
+  <p>
+    There is nothing to change: programs written for 0.0.9 run unchanged. 0.0.10 only adds. The language, the
+    <code>.strawberry</code> cache format and the extension interface are the same; the new features are two ordinary
+    standard library modules and the <a href="#toolchain">setup wizards</a>.
+  </p>
+  <table>
+    <tr><th>New in 0.0.10</th><th>How</th></tr>
+    <tr><td>Lists that grow</td><td><code>shuck bushel</code>, then <a href="#lib-bushel"><code>bushel_new</code></a>, <code>bushel_push</code>, <code>bushel_get</code> and the rest</td></tr>
+    <tr><td>Arrays of a fixed length</td><td><code>shuck furrow</code>, then <a href="#lib-furrow"><code>furrow_new</code></a>, <code>furrow_set</code>, <code>furrow_get</code> and the rest</td></tr>
+    <tr><td>A graphical installer</td><td>the Windows and macOS <a href="#toolchain">setup wizards</a></td></tr>
+  </table>
+  <p>
+    One thing to know: <code>bushel</code> and <code>furrow</code> are now standard library names. If you already have a
+    file of your own called <code>bushel.cob</code> or <code>furrow.cob</code> next to a program, it keeps being found first
+    (see <a href="#shuck"><code>shuck</code></a>); rename it if you want the standard library one.
   </p>
 
   <h3 id="upgrading">Upgrading from 0.0.8</h3>

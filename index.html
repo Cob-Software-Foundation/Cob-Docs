@@ -107,7 +107,7 @@
 <div class="layout">
 <nav>
   <h1>Cob</h1>
-  <div class="codename">v0.0.10 &middot; Project Obsidian Falcon</div>
+  <div class="codename">v0.1.0 (beta) &middot; Project Obsidian Falcon</div>
 
   <div class="section-label">Guide</div>
   <ul>
@@ -143,6 +143,7 @@
     <li><a href="#lib-barn">barn (windows)</a></li>
     <li><a href="#lib-tassel">tassel (Tcl/Tk)</a></li>
     <li><a href="#lib-silo">silo (everyday five)</a></li>
+    <li><a href="#upgrading-0-0-10">Upgrading from 0.0.10</a></li>
     <li><a href="#upgrading-0-0-9">Upgrading from 0.0.9</a></li>
     <li><a href="#upgrading">Upgrading from 0.0.8</a></li>
     <li><a href="#own-module">Write your own module</a></li>
@@ -394,7 +395,7 @@ pop(<span class="str">"always reparsed fresh"</span>)</pre>
     does the same). Variables and recipes persist from one input to the next.
   </p>
   <pre>$ cob_interp
-Cob 0.0.10 REPL -- :help for help, :quit or Ctrl-D to leave
+Cob 0.1.0 REPL -- :help for help, :quit or Ctrl-D to leave
 cob&gt; 1 + 2
 3
 cob&gt; <span class="kw">set</span> x = 10
@@ -739,6 +740,15 @@ pop(<span class="str">"answer="</span> + tassel_tcl(<span class="str">"expr {6*7
     <code>shuck silo</code> is just <code>shuck porch</code>, <code>cornmath</code>, <code>kernels</code>,
     <code>almanac</code> and <code>granary</code> together. The other modules (<code>bushel</code>,
     <code>furrow</code>, <code>pantry</code>, <code>barn</code>, <code>tassel</code>) are shucked on their own.
+  </p>
+
+  <h3 id="upgrading-0-0-10">Upgrading from 0.0.10 <span class="badge">0.1.0</span></h3>
+  <p>
+    0.1.0 is a <b>beta</b>. There is nothing to change: programs written for 0.0.10 run unchanged. The language, the
+    <code>.strawberry</code> cache format and the extension interface are the same. Release builds are now served from
+    <a href="https://downloads.pixel-pulse.dev">downloads.pixel-pulse.dev</a>, and the apt repository moved there too
+    (see the <a href="https://cob.pixel-pulse.dev/download.html">download page</a> for the new apt source line). Please report
+    anything odd on <a href="https://github.com/Cob-Software-Foundation/Cob/issues">GitHub</a>.
   </p>
 
   <h3 id="upgrading-0-0-9">Upgrading from 0.0.9</h3>

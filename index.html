@@ -84,10 +84,11 @@
 <div class="layout">
 <nav>
   <h1>Cob</h1>
-  <div class="codename">v0.1.0 (beta) &middot; Project Obsidian Falcon</div>
+  <div class="codename">v0.1.1 (beta) &middot; Project Obsidian Falcon</div>
 
   <div class="section-label">Guide</div>
   <ul>
+    <li><a href="#quickstart">Quickstart</a></li>
     <li><a href="#overview">Overview</a></li>
     <li><a href="#toolchain">The toolchain</a></li>
   </ul>
@@ -98,6 +99,7 @@
     <li><a href="#set">set</a></li>
     <li><a href="#while">while</a></li>
     <li><a href="#if">if / elif / else</a></li>
+    <li><a href="#boolean">and / or / not</a></li>
     <li><a href="#recipe">recipe / serve</a></li>
     <li><a href="#shuck">shuck</a></li>
     <li><a href="#extern">extern</a></li>
@@ -106,7 +108,7 @@
     <li><a href="#repl">The REPL</a></li>
   </ul>
 
-  <div class="section-label">Standard library <span class="badge">0.0.9</span></div>
+  <div class="section-label">Standard library</div>
   <ul>
     <li><a href="#stdlib">How it works</a></li>
     <li><a href="#lib-porch">porch (input)</a></li>
@@ -120,6 +122,7 @@
     <li><a href="#lib-pantry">pantry (SQLite)</a></li>
     <li><a href="#lib-barn">barn (windows)</a></li>
     <li><a href="#lib-silo">silo (everyday five)</a></li>
+    <li><a href="#upgrading-0-1-0">Upgrading from 0.1.0</a></li>
     <li><a href="#upgrading-0-0-10">Upgrading from 0.0.10</a></li>
     <li><a href="#upgrading-0-0-9">Upgrading from 0.0.9</a></li>
     <li><a href="#upgrading">Upgrading from 0.0.8</a></li>
@@ -136,6 +139,36 @@
 </nav>
 
 <main>
+
+<section id="quickstart">
+  <h2>Quickstart</h2>
+  <p>
+    Cob is two tools. <code>cob_interp</code> runs a program straight away; <code>popcorn_comp</code> turns it into a native
+    executable. Install them with the setup wizard (see <a href="#toolchain">the toolchain</a>), or unpack a release and put its
+    folder on your <code>PATH</code>. Then:
+  </p>
+  <p><b>1. Write it.</b> Save this as <code>hello.cob</code>:</p>
+  <pre>pop(<span class="str">"Hello, Cob!"</span>)</pre>
+  <p><b>2. Run it.</b></p>
+  <pre>cob_interp hello.cob
+<span class="com"># Hello, Cob!</span></pre>
+  <p>
+    The first run also saves the parsed program next to your file as <code>hello.strawberry</code>, a fast-boot cache. Later runs
+    use it, until you edit <code>hello.cob</code>: a cache older than its source is ignored and rebuilt. To skip the cache
+    altogether, run with <code>--no-cache</code> or make <code>_MakeCache = False</code> the first line of the file.
+  </p>
+  <p><b>3. Make it a native program.</b> <code>popcorn_comp</code> compiles that <code>.strawberry</code> file, so run the program once first (step 2):</p>
+  <pre>popcorn_comp hello.strawberry -o hello
+./hello                          <span class="com"># hello.exe on Windows</span>
+<span class="com"># Hello, Cob!</span></pre>
+  <p>
+    That is the whole workflow: <b>write a <code>.cob</code> file, run it with <code>cob_interp</code>, compile its
+    <code>.strawberry</code> with <code>popcorn_comp</code>.</b> A program that uses the standard library (<code>shuck bushel</code>,
+    <code>shuck kernels</code>, ...) compiles the same way; add <code>--static-stdlib</code> to
+    <a href="#popcorn-comp">link the library in</a> so the result runs without Cob's <code>lib/</code> folder.
+  </p>
+  <p class="dim">Try the next steps: <a href="#recipe">recipes</a> for functions, <a href="#lib-lists">lists</a>, and <a href="#repl">the REPL</a> for typing Cob live.</p>
+</section>
 
 <section id="overview">
   <h2>Overview</h2>
@@ -162,7 +195,7 @@ pop(countdown(3))</pre>
     the <a href="#stdlib">standard library</a>: real shared libraries
     brought in with <code>shuck</code>, every name corn themed.
   </p>
-  <p class="dim">Indentation is spaces only &mdash; tabs are a hard error. Comments are whole lines starting with <code>#</code>; there are no trailing comments, so the notes written to the right of some examples on this page are explanation, not code you can paste.</p>
+  <p class="dim">Indentation is spaces only &mdash; tabs are a hard error. A <code>#</code> starts a comment, on a line of its own or after code (<code>set x = 1  # note</code>; <code>#</code> inside a string is just text). Trailing comments need Cob 0.1.0.</p>
 </section>
 
 <section id="toolchain">
@@ -253,9 +286,8 @@ pop(<span class="str">"line one\nline two"</span>)</pre>
         pop(i)
     <span class="kw">set</span> i = i + 1</pre>
   <div class="note">
-    There is no separate <code>and</code>/<code>or</code>/<code>not</code>
-    yet &mdash; a condition is a single comparison or truthiness test.
-    To combine two tests, nest one <code>if</code> inside the other. An
+    A condition is one comparison or truthiness test, or several joined with <code>and</code>, <code>or</code> and
+    <code>not</code> (see below). An
     <code>else</code> or <code>elif</code> with no matching
     <code>if</code> directly above it at the same indentation is a
     syntax error, and so is an <code>if</code> line with no trailing
@@ -264,6 +296,25 @@ pop(<span class="str">"line one\nline two"</span>)</pre>
     <code>if</code>, <code>elif</code> and <code>else</code> are
     reserved words.
   </div>
+
+  <h3 id="boolean">and / or / not <span class="badge">0.1.0</span></h3>
+  <p>
+    Conditions in <code>if</code>, <code>elif</code> and <code>while</code> can combine tests. <code>not</code> binds tightest, then
+    <code>and</code>, then <code>or</code>; parentheses group. Like Python, <code>and</code> and <code>or</code> stop early: the
+    right side is not evaluated when the left side already decides.
+  </p>
+  <pre><span class="kw">if</span> count &gt; 0 <span class="kw">and not</span> count &gt; 9:       <span class="com"># between 1 and 9</span>
+    pop(<span class="str">"small"</span>)
+<span class="kw">if</span> (a &lt; 3 <span class="kw">or</span> a &gt; 4) <span class="kw">and</span> name == <span class="str">"cob"</span>:
+    pop(<span class="str">"grouped"</span>)
+<span class="kw">while</span> i &lt; n <span class="kw">and</span> found == 0:       <span class="com"># the whole condition is tested every time round</span>
+    <span class="kw">set</span> i = i + 1</pre>
+  <p class="note">
+    They are part of a condition, not values: <code>set ok = a and b</code> is not valid. A variable called <code>not</code>,
+    <code>and</code> or <code>or</code> still works (<code>if not == 3:</code>). Behind the scenes a combined condition becomes plain
+    <code>if</code> statements over a hidden variable named <code>__condN</code>, so programs behave the same in
+    <code>cob_interp</code> and <code>popcorn_comp</code>.
+  </p>
 
   <h3 id="recipe">recipe &lt;name&gt;(&lt;params&gt;): / serve [&lt;expr&gt;] <span class="badge">0.0.9</span></h3>
   <p>
@@ -372,7 +423,7 @@ pop(<span class="str">"always reparsed fresh"</span>)</pre>
     does the same). Variables and recipes persist from one input to the next.
   </p>
   <pre>$ cob_interp
-Cob 0.1.0 REPL -- :help for help, :quit or Ctrl-D to leave
+Cob 0.1.1 REPL -- :help for help, :quit or Ctrl-D to leave
 cob&gt; 1 + 2
 3
 cob&gt; <span class="kw">set</span> x = 10
@@ -425,7 +476,7 @@ cob&gt; :quit</pre>
   <ul>
     <li><b>Forgetting a <code>shuck</code></b> is a clear error: <code>'kernel_len' is not defined -- it is in the standard library: add `shuck kernels` at the top</code>.</li>
     <li><b>Wrong arguments</b> to a library function print a warning (<code>[kernels] warning: kernel_slice() takes 3 arguments, got 2</code>) and give a harmless default (<code>0</code> or <code>""</code>); they never crash. Library warnings are tagged with the module name.</li>
-    <li><b>The same in both tools.</b> <code>popcorn_comp</code> links the same shared libraries and records the library folder as an rpath, so a compiled program behaves like the interpreted one, warnings included &mdash; but it must be linked dynamically, so keep <code>lib/</code> where it was when you compiled (or set <code>COB_STDLIB</code>).</li>
+    <li><b>The same in both tools.</b> A compiled program behaves like the interpreted one, warnings included. <code>popcorn_comp</code> links the modules as shared libraries and records the library folder as an rpath, so keep <code>lib/</code> where it was when you compiled (or set <code>COB_STDLIB</code>) &mdash; or add <code>--static-stdlib</code> to link <code>porch</code>, <code>cornmath</code>, <code>kernels</code>, <code>almanac</code>, <code>bushel</code> and <code>furrow</code> into the program, which then needs no <code>lib/</code> at all.</li>
   </ul>
   <div class="note">
     Not every module is in every build. The downloadable packages and the Docker image carry
@@ -744,9 +795,21 @@ pop(<span class="str">"got: "</span> + name)
     <code>furrow</code>, <code>pantry</code>, <code>barn</code>) are shucked on their own.
   </p>
 
+  <h3 id="upgrading-0-1-0">Upgrading from 0.1.0 <span class="badge">0.1.1</span></h3>
+  <p>
+    0.1.1 is a bug-fix release; there is nothing to change in your programs. It fixes the <b>apt repository</b>: on Debian, Ubuntu and
+    Raspberry Pi OS, <code>sudo apt update</code> failed with <code>.../apt ./ Release ... 404 Not Found</code> and "does not have a Release file", because
+    the source line described a flat repository. The repository now has the standard <code>dists/</code> and <code>pool/</code> layout, with an index
+    for amd64, arm64, armhf and i386, and the source line ends in <code>stable main</code>. If you added the old line, replace it:
+  </p>
+  <pre>sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://downloads.pixel-pulse.dev/apt/cob-gpg-public-key.asc | sudo tee /etc/apt/keyrings/csf-cob.asc &gt; /dev/null
+echo "deb [signed-by=/etc/apt/keyrings/csf-cob.asc] https://downloads.pixel-pulse.dev/apt stable main" | sudo tee /etc/apt/sources.list.d/csf-cob.list
+sudo apt update &amp;&amp; sudo apt install csf-cob</pre>
+
   <h3 id="upgrading-0-0-10">Upgrading from 0.0.10 <span class="badge">0.1.0</span></h3>
   <p>
-    0.1.0 is a <b>beta</b>. There is nothing to change: programs written for 0.0.10 run unchanged. What is new is that <a href="#lib-lists">bushel lists read like Python lists</a>: <code>[1, 2, 3]</code>, <code>xs[-1]</code>, <code>set xs[0] = 9</code> and <code>for x in xs:</code>. The language, the
+    0.1.0 is a <b>beta</b>. There is nothing to change: programs written for 0.0.10 run unchanged. What is new: <a href="#lib-lists">bushel lists read like Python lists</a> (<code>[1, 2, 3]</code>, <code>xs[-1]</code>, <code>set xs[0] = 9</code>, <code>for x in xs:</code>), conditions can use <a href="#boolean"><code>and</code>, <code>or</code> and <code>not</code></a>, a <code>#</code> comment can follow code, and <a href="#static-stdlib"><code>popcorn_comp --static-stdlib</code></a> links the standard library into the program. Editing a program now also reruns the edit: a <code>.strawberry</code> cache older than its source is ignored. The language, the
     <code>.strawberry</code> cache format and the extension interface are the same. Release builds are now served from
     <a href="https://downloads.pixel-pulse.dev">downloads.pixel-pulse.dev</a>, and the apt repository moved there too
     (see the <a href="https://cob.pixel-pulse.dev/download.html">download page</a> for the new apt source line). Please report
@@ -838,7 +901,7 @@ pop(double_it(21))</pre>
 
 <section id="popcorn-comp">
   <h3 id="popcorn-comp-h">popcorn_comp</h3>
-  <pre>popcorn_comp &lt;file.strawberry&gt; -o &lt;output&gt; [--no-gc] [--cc &lt;compiler&gt;] [--emit-c &lt;path.c&gt;]</pre>
+  <pre>popcorn_comp &lt;file.strawberry&gt; -o &lt;output&gt; [--no-gc] [--static-stdlib|--dynamic-stdlib] [--cc &lt;compiler&gt;] [--emit-c &lt;path.c&gt;]</pre>
   <p>
     Transpiles the bytecode to plain C, then spawns a real C compiler
     to produce a native executable. Default backend is
@@ -867,13 +930,27 @@ pop(double_it(21))</pre>
     producing fully static binaries with no runtime libc dependency (see the
     note below about the standard library).
   </div>
+  <h3 id="static-stdlib">Linking the standard library <span class="badge">0.1.0</span></h3>
+  <p>
+    <a href="#recipe">Recipes</a> and every <a href="#stdlib">standard library</a> module compile, because library calls are ordinary
+    calls into a library. There are two ways to link it:
+  </p>
+  <table>
+    <tr><th>Flag</th><th>What happens</th></tr>
+    <tr><td><span class="flag">--static-stdlib</span></td><td>
+      <code>porch</code>, <code>cornmath</code>, <code>kernels</code>, <code>almanac</code>, <code>bushel</code> and <code>furrow</code> are linked
+      into the program from <code>lib/libcob_stdlib.a</code>. The finished program needs no <code>lib/</code> folder, no
+      <code>COB_STDLIB</code> and no rpath, and it can be a static musl binary. This is the <b>default for musl targets</b> (the
+      Linux cross-compile targets above), because a static program cannot load shared libraries.</td></tr>
+    <tr><td><span class="flag">--dynamic-stdlib</span></td><td>Every module is a shared library, linked with <code>-l&lt;module&gt;</code>, and the library folder is recorded as the
+      program's rpath. Keep <code>lib/</code> where it was when you compiled, or set <code>COB_STDLIB</code>. The default for other targets.</td></tr>
+  </table>
   <div class="note">
-    <a href="#recipe">Recipes</a> and every <a href="#stdlib">standard library</a> module compile, because
-    library calls are ordinary shared-library calls: the finished program is linked with
-    <code>-l&lt;module&gt;</code> and the standard library folder is recorded as its rpath. Two
-    consequences: the program must be linked <b>dynamically</b> (a static program can't use shared libraries &mdash;
-    and the Linux <b>musl</b> targets above are static), and a cross-compiled program needs those modules built for its
-    target, with <code>COB_STDLIB</code> pointing at them when you compile. Programs that use only the core language are unaffected.
+    <code>pantry</code> (SQLite), <code>granary</code> (files) and <code>barn</code> (windows) wrap C libraries and are always shared libraries, so a program
+    that <code>shuck</code>s one of them still needs it next to the program, even with <code>--static-stdlib</code>. A cross-compiled
+    program needs the modules built for its target, with <code>COB_STDLIB</code> pointing at them when you compile. Programs that use only
+    the core language are unaffected. <code>--static-stdlib</code> is not available for Windows targets yet, and asking for it without
+    <code>libcob_stdlib.a</code> in the library folder is an error (build it with <code>make stdlib</code>).
   </div>
   <div class="note">
     Without <code>--cc</code> or <code>$CobCC</code>, <code>popcorn_comp</code> looks for <code>zig cc</code>. If you
